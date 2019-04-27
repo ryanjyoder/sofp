@@ -1,5 +1,9 @@
 package sofp
 
+import (
+	"path/filepath"
+)
+
 type archiveParser struct {
 	q            iterable
 	streamLookup map[string]string
@@ -78,4 +82,13 @@ func (p *archiveParser) Next() *Row {
 	row.StreamID = p.streamLookup[row.PostID]
 
 	return row
+}
+
+func GetFilepathsFromDir(baseDir string) (string, string, string, string, string) {
+
+	return filepath.Join(baseDir, "Posts.xml"),
+		filepath.Join(baseDir, "PostHistory.xml"),
+		filepath.Join(baseDir, "Comments.xml"),
+		filepath.Join(baseDir, "PostLinks.xml"),
+		filepath.Join(baseDir, "Votes.xml")
 }

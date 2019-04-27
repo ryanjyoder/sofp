@@ -8,7 +8,10 @@ import (
 )
 
 func main() {
-	archive, err := sofp.NewArchiveParser(os.Args[1], os.Args[2], os.Args[3], os.Args[4], os.Args[5])
+	if len(os.Args) != 2 {
+		fmt.Println("please provide a directory with the archive")
+	}
+	archive, err := sofp.NewArchiveParser(sofp.GetFilepathsFromDir(os.Args[1]))
 	checkerr("error open archive", err)
 
 	for post := archive.Next(); post != nil; post = archive.Next() {
