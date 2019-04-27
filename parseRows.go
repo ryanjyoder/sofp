@@ -49,9 +49,13 @@ type Row struct {
 	// Votes
 	VoteTypeId int `xml:"VoteTypeId" json:"VoteTypeId,omitempty"`
 
-	StreamID  string `json:"StreamID"`
+	Stream    string `json:"StreamID"`
 	DeltaType string `json:"DeltaType"`
 	err       error
+}
+
+func (row *Row) StreamID() string {
+	return row.Stream
 }
 
 func NewParser(file string, updateType string) (*RowsParser, error) {

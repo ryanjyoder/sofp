@@ -1,22 +1,23 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ryanjyoder/sofp"
 	"os"
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Println("please provide a directory with the archive")
+	if len(os.Args) != 3 {
+		fmt.Println("please provide a directory with the archive and output directory")
 	}
 	archive, err := sofp.NewArchiveParser(sofp.GetFilepathsFromDir(os.Args[1]))
 	checkerr("error open archive", err)
 
+	writer, err := sofp.NewStreamWriter(os.Args[2])
+	checkerr("could not create stream writer", err)
+
 	for post := archive.Next(); post != nil; post = archive.Next() {
-		jsonstr, _ := json.Marshal(post)
-		fmt.Println(string(jsonstr))
+		writer.Write(post)
 	}
 }
 

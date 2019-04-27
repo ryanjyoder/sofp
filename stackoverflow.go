@@ -69,7 +69,7 @@ func (p *archiveParser) Next() *Row {
 
 	// The main post ID is the used for the stream id.
 	// If it's a post then use the postID, but if it's a reply use the parent id.
-	if row.DeltaType == "Post" {
+	if row.DeltaType == PostType {
 		if row.PostTypeID == "1" {
 			row.PostID = row.ID
 			p.streamLookup[row.PostID] = row.PostID
@@ -79,7 +79,7 @@ func (p *archiveParser) Next() *Row {
 		}
 	}
 
-	row.StreamID = p.streamLookup[row.PostID]
+	row.Stream = p.streamLookup[row.PostID]
 
 	return row
 }
