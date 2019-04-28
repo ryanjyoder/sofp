@@ -2,22 +2,50 @@ package main
 
 import (
 	"fmt"
+	"github.com/cavaliercoder/grab"
 	"github.com/ryanjyoder/sofp"
 	"os"
+	"os/exec"
+	"path/filepath"
 )
 
 func main() {
+
 	if len(os.Args) != 3 {
-		fmt.Println("please provide a directory with the archive and output directory")
+		fmt.Println("please provide a working directory and a stackoverflow domain to sync")
 	}
-	archive, err := sofp.NewArchiveParser(sofp.GetFilepathsFromDir(os.Args[1]))
-	checkerr("error open archive", err)
 
-	writer, err := sofp.NewStreamWriter(os.Args[2])
-	checkerr("could not create stream writer", err)
+	workingDir := os.Args[1]
+	archiveDir := filepath.Join(workingDir, "1-zips")
+	xmlDir := filepath.Join(workingDir, "2-xmls")
+	parsedDir := filepath.Join(workingDir, "3-streams")
 
-	for post := archive.Next(); post != nil; post = archive.Next() {
-		writer.Write(post)
+	for _, domain := range []string{os.Args[2]} {
+		filename := domain + ".7z"
+		outputfile := filepath.Join(archiveDir, filename)
+		archiveURL := "https://archive.org/download/stackexchange/" + filename
+		_, err := grab.Get(outputfile, archiveURL)
+		if err != nil {
+			checkerr("error downloading archive", err)
+		}
+
+		decompressedFiles := filepath.Join(xmlDir, domain)
+		cmd := exec.Command("7z", "x", outputfile)
+		cmd.Dir = decompressedFiles
+		os.MkdirAll(cmd.Dir, 0755)
+		err = cmd.Run()
+		checkerr("error decomporessing archive", err)
+
+		archive, err := sofp.NewArchiveParser(sofp.GetFilepathsFromDir(decompressedFiles))
+		checkerr("error open archive", err)
+
+		streamDir := filepath.Join(parsedDir, domain)
+		writer, err := sofp.NewStreamWriter(streamDir)
+		checkerr("could not create stream writer", err)
+
+		for post := archive.Next(); post != nil; post = archive.Next() {
+			writer.Write(post)
+		}
 	}
 }
 
