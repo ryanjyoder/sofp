@@ -3,6 +3,7 @@ package sofp
 import (
 	"encoding/xml"
 	"os"
+	"time"
 )
 
 type RowsParser struct {
@@ -88,6 +89,9 @@ func NewParser(file string, updateType string) (*RowsParser, error) {
 					err := decoder.DecodeElement(&p, &se)
 					p.err = err
 					p.DeltaType = updateType
+					if updateType == VotesType {
+						p.CreationDate = timeMustParse(time.Parse("2006-01-02T15:04:05.999", p.CreationDate)).AddDate(0, 0, 1).Format("2006-01-02T15:04:05.999")
+					}
 					psr.postChan <- &p
 				}
 
@@ -95,6 +99,9 @@ func NewParser(file string, updateType string) (*RowsParser, error) {
 		}
 	}()
 	return psr, nil
+}
+func timeMustParse(t time.Time, err error) time.Time {
+	return t
 }
 
 func (psr *RowsParser) Next() *Row {
