@@ -27,8 +27,7 @@ func (w *streamWriter) Write(d Delta) error {
 	}
 	paddedStream := d.StreamID() + "00000000"
 	dir1 := paddedStream[:3]
-	dir2 := paddedStream[3:8]
-	fullDirPath := filepath.Join(w.baseDir, dir1, dir2)
+	fullDirPath := filepath.Join(w.baseDir, dir1)
 	fullFilePath := filepath.Join(fullDirPath, streamID)
 	os.MkdirAll(fullDirPath, 0755)
 	f, err := os.OpenFile(fullFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
