@@ -28,7 +28,7 @@ type Row struct {
 	Title                 string `xml:"Title,attr" json:"Title,omitempty"`
 	LastActivityDate      string `xml:"LastActivityDate,attr" json:"LastActivityDate,omitempty"`
 	LastEditDate          string `xml:"LastEditDate,attr" json:"LastEditDate,omitempty"`
-	LastEditorDisplayName string `xml:"LastEditorDisplayName,attr" LastEditorDisplayName,omitempty"`
+	LastEditorDisplayName string `xml:"LastEditorDisplayName,attr" json:"LastEditorDisplayName,omitempty"`
 	LastEditorUserId      string `xml:"LastEditorUserId,attr" json:"LastEditorUserId,omitempty"`
 	OwnerUserId           string `xml:"OwnerUserId,attr" json:"OwnerUserId,omitempty"`
 
@@ -44,7 +44,7 @@ type Row struct {
 	// No Comments only attributes
 
 	// PostLinks only attributes
-	RelatedPostID string `xml:"RelatedPostId,attr" son:"RelatedPostId,omitempty"`
+	RelatedPostID string `xml:"RelatedPostId,attr" json:"RelatedPostId,omitempty"`
 	LinkTypeID    string `xml:"LinkTypeId,attr" json:"LinkTypeId,omitempty"`
 
 	// Votes
