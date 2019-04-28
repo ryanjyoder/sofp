@@ -25,10 +25,12 @@ func (w *streamWriter) Write(d Delta) error {
 	if streamID == "" {
 		streamID = "0000nostream"
 	}
-	paddedStream := d.StreamID() + "0000"
+	paddedStream := d.StreamID() + "00000000"
 	dir1 := paddedStream[:2]
 	dir2 := paddedStream[2:4]
-	fullDirPath := filepath.Join(w.baseDir, dir1, dir2)
+	dir3 := paddedStream[4:6]
+	dir4 := paddedStream[6:8]
+	fullDirPath := filepath.Join(w.baseDir, dir1, dir2, dir3, dir4)
 	fullFilePath := filepath.Join(fullDirPath, streamID)
 	os.MkdirAll(fullDirPath, 0755)
 	f, err := os.OpenFile(fullFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
