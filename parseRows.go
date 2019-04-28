@@ -14,7 +14,7 @@ type Row struct {
 	// Post attributes
 	ID                    *int   `xml:"Id,attr" json:"Id"`
 	PostTypeID            string `xml:"PostTypeId,attr" json:"PostTypeId,omitempty"`
-	ParentID              *int   `xml:"ParentId,attr" json:"ParentId,omitempty:`
+	ParentID              *int   `xml:"ParentId,attr" json:"ParentId,omitempty"`
 	AcceptedAnswerID      *int   `xml:"AcceptedAnswerId,attr" json:"AcceptedAnswerId,omitempty"`
 	CreationDate          string `xml:"CreationDate,attr" json:"CreationDate,omitempty"`
 	Score                 string `xml:"Score,attr" json:"Score,omitempty"`
@@ -44,8 +44,8 @@ type Row struct {
 	// No Comments only attributes
 
 	// PostLinks only attributes
-	RelatedPostID string `xml:"RelatedPostId,attr" son:"RelatedPostId,omitempty:`
-	LinkTypeID    string `xml:"LinkTypeId,attr" json:"LinkTypeId"`
+	RelatedPostID string `xml:"RelatedPostId,attr" son:"RelatedPostId,omitempty"`
+	LinkTypeID    string `xml:"LinkTypeId,attr" json:"LinkTypeId,omitempty"`
 
 	// Votes
 	VoteTypeId int `xml:"VoteTypeId" json:"VoteTypeId,omitempty"`
