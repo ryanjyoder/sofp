@@ -1,12 +1,18 @@
 package sofp
 
 import (
+	"fmt"
 	"path/filepath"
 )
 
 type archiveParser struct {
-	q            iterable
-	streamLookup map[string]string
+	rows         chan *Row
+	streamLookup map[int]int
+	posts        iterable
+	history      *readUntil
+	comments     *readUntil
+	postLinks    *readUntil
+	votes        *readUntil
 }
 
 const (
@@ -43,22 +49,62 @@ func NewArchiveParser(posts, postHistory, comments, postLinks, votes string) (*a
 		return nil, err
 	}
 
-	merged := NewMerger(
-		postPsr,
-		NewMerger(
-			NewMerger(historyPsr, commentsPsr),
-			NewMerger(postLinkPsr, votesPsr),
-		),
-	)
-	return &archiveParser{
-		q:            merged,
-		streamLookup: map[string]string{},
-	}, nil
+	psr := &archiveParser{
+		rows:         make(chan *Row),
+		streamLookup: map[int]int{},
+		posts:        postPsr,
+		history:      NewReadUntil(historyPsr),
+		comments:     NewReadUntil(commentsPsr),
+		postLinks:    NewReadUntil(postLinkPsr),
+		votes:        NewReadUntil(votesPsr),
+	}
+	go psr.read()
 
+	return psr, nil
+}
+
+func (p *archiveParser) read() {
+	defer close(p.rows)
+	for {
+		post := p.posts.Next()
+		if post == nil {
+			return
+		}
+		p.rows <- post
+
+		if post.err != nil {
+			return
+		}
+
+		// PostHistory
+		p.history.ReadUntil(*post.ID)
+		for p.history.HasNext() {
+			p.rows <- p.history.Next()
+		}
+
+		// Comments
+		p.comments.ReadUntil(*post.ID)
+		for p.comments.HasNext() {
+			p.rows <- p.comments.Next()
+		}
+
+		// PostLinks
+		p.postLinks.ReadUntil(*post.ID)
+		for p.postLinks.HasNext() {
+			p.rows <- p.postLinks.Next()
+		}
+
+		// Votes
+		p.votes.ReadUntil(*post.ID)
+		for p.votes.HasNext() {
+			p.rows <- p.votes.Next()
+		}
+
+	}
 }
 
 func (p *archiveParser) Next() *Row {
-	row := p.q.Next()
+	row := <-p.rows
 	// EOF
 	if row == nil {
 		return nil
@@ -72,16 +118,16 @@ func (p *archiveParser) Next() *Row {
 	// The main post ID is the used for the stream id.
 	// If it's a post then use the postID, but if it's a reply use the parent id.
 	if row.DeltaType == PostType {
+		row.PostID = row.ID
 		if row.PostTypeID == "1" {
-			row.PostID = row.ID
-			p.streamLookup[row.PostID] = row.PostID
+			p.streamLookup[*row.PostID] = *row.PostID
 		}
 		if row.PostTypeID == "2" {
-			p.streamLookup[row.PostID] = row.ParentID
+			p.streamLookup[*row.PostID] = *row.ParentID
 		}
 	}
 
-	row.Stream = p.streamLookup[row.PostID]
+	row.Stream = fmt.Sprintf("%d", p.streamLookup[*row.PostID])
 
 	return row
 }

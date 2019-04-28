@@ -12,10 +12,10 @@ type RowsParser struct {
 
 type Row struct {
 	// Post attributes
-	ID                    string `xml:"Id,attr" json:"Id"`
+	ID                    *int   `xml:"Id,attr" json:"Id"`
 	PostTypeID            string `xml:"PostTypeId,attr" json:"PostTypeId,omitempty"`
-	ParentID              string `xml:"ParentId,attr" json:"ParentId,omitempty:`
-	AcceptedAnswerID      string `xml:"AcceptedAnswerId,attr" json:"AcceptedAnswerId,omitempty"`
+	ParentID              *int   `xml:"ParentId,attr" json:"ParentId,omitempty:`
+	AcceptedAnswerID      *int   `xml:"AcceptedAnswerId,attr" json:"AcceptedAnswerId,omitempty"`
 	CreationDate          string `xml:"CreationDate,attr" json:"CreationDate,omitempty"`
 	Score                 string `xml:"Score,attr" json:"Score,omitempty"`
 	ViewCount             string `xml:"ViewCount,attr" json:"ViewCount,omitempty"`
@@ -34,7 +34,7 @@ type Row struct {
 
 	// PostHistory Attributes
 	PostHistoryTypeID string `xml:"PostHistoryTypeId,attr" json:"PostHistoryTypeId,omitempty"`
-	PostID            string `xml:"PostId,attr" json:"PostId,omitempty"`
+	PostID            *int   `xml:"PostId,attr" json:"PostId,omitempty"`
 	RevisionGUID      string `xml:"RevisionGUID,attr" json:"RevisionGUID,omitempty"`
 	UserID            string `xml:"UserId,attr" json:"UserId,omitempty"`
 	Comment           string `xml:"Comment,attr" json:"Comment,omitempty"`
@@ -89,9 +89,6 @@ func NewParser(file string, updateType string) (*RowsParser, error) {
 					err := decoder.DecodeElement(&p, &se)
 					p.err = err
 					p.DeltaType = updateType
-					if updateType == VotesType {
-						p.CreationDate = timeMustParse(time.Parse("2006-01-02T15:04:05.999", p.CreationDate)).AddDate(0, 0, 7).Format("2006-01-02T15:04:05.999")
-					}
 					psr.postChan <- &p
 				}
 
