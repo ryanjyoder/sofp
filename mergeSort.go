@@ -38,7 +38,7 @@ func (m *merger) readQueues() {
 		}
 
 		// b queue is empty OR a is older
-		if b == nil || (a != nil && a.CreationDate < b.CreationDate) {
+		if b == nil || (a != nil && a.CreationDate <= b.CreationDate) {
 			m.outQueue <- a
 			a = m.aQueue.Next()
 			continue
