@@ -90,7 +90,7 @@ func NewParser(file string, updateType string) (*RowsParser, error) {
 					p.err = err
 					p.DeltaType = updateType
 					if updateType == VotesType {
-						p.CreationDate = timeMustParse(time.Parse("2006-01-02T15:04:05.999", p.CreationDate)).AddDate(0, 0, 1).Format("2006-01-02T15:04:05.999")
+						p.CreationDate = timeMustParse(time.Parse("2006-01-02T15:04:05.999", p.CreationDate)).AddDate(0, 0, 7).Format("2006-01-02T15:04:05.999")
 					}
 					psr.postChan <- &p
 				}
