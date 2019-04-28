@@ -43,11 +43,13 @@ func NewArchiveParser(posts, postHistory, comments, postLinks, votes string) (*a
 		return nil, err
 	}
 
-	postPlusHistory := NewMerger(postPsr, historyPsr)
-	postsHistoryComments := NewMerger(postPlusHistory, commentsPsr)
-	metadata := NewMerger(postLinkPsr, votesPsr)
-	merged := NewMerger(postsHistoryComments, metadata)
-
+	merged := NewMerger(
+		postPsr,
+		NewMerger(
+			NewMerger(historyPsr, commentsPsr),
+			NewMerger(postLinkPsr, votesPsr),
+		),
+	)
 	return &archiveParser{
 		q:            merged,
 		streamLookup: map[string]string{},
