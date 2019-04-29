@@ -38,8 +38,9 @@ func main() {
 		cmd.Dir = decompressedFiles
 
 		fmt.Println("Decompressing files:", outputfile)
-		err = cmd.Run()
+		stdoutStderr, err := cmd.CombinedOutput()
 		checkerr("error decomporessing archive", err)
+		fmt.Println("7z message", stdoutStderr)
 
 		archive, err := sofp.NewArchiveParser(sofp.GetFilepathsFromDir(decompressedFiles))
 		checkerr("error open archive", err)
