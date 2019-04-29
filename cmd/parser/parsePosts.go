@@ -24,15 +24,20 @@ func main() {
 		filename := domain + ".7z"
 		outputfile := filepath.Join(archiveDir, filename)
 		archiveURL := "https://archive.org/download/stackexchange/" + filename
+		fmt.Println("downloading", outputfile, archiveURL)
 		_, err := grab.Get(outputfile, archiveURL)
 		if err != nil {
 			checkerr("error downloading archive", err)
 		}
 
 		decompressedFiles := filepath.Join(xmlDir, domain)
+		err = os.MkdirAll(decompressedFiles, 0755)
+		checkerr("couldn't created xml directory", err)
+
 		cmd := exec.Command("7z", "x", outputfile)
 		cmd.Dir = decompressedFiles
-		os.MkdirAll(cmd.Dir, 0755)
+
+		fmt.Println("Decompressing files:", outputfile)
 		err = cmd.Run()
 		checkerr("error decomporessing archive", err)
 
@@ -43,6 +48,7 @@ func main() {
 		writer, err := sofp.NewStreamWriter(streamDir)
 		checkerr("could not create stream writer", err)
 
+		fmt.Println("Parsing to streams", decompressedFiles, streamDir)
 		for post := archive.Next(); post != nil; post = archive.Next() {
 			writer.Write(post)
 		}
