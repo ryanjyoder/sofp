@@ -15,7 +15,8 @@ func main() {
 		fmt.Println("please provide a working directory and a stackoverflow domain to sync")
 	}
 
-	workingDir := os.Args[1]
+	workingDir, err := filepath.Abs(os.Args[1])
+	checkerr("couldnt get abs path", err)
 	archiveDir := filepath.Join(workingDir, "1-zips")
 	xmlDir := filepath.Join(workingDir, "2-xmls")
 	parsedDir := filepath.Join(workingDir, "3-streams")
