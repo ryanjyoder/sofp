@@ -3,13 +3,36 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"github.com/ryanjyoder/sofp"
+	"html/template"
 	"log"
+	"net/http"
 	"os"
 )
 
+var pageTemplate *template.Template
+
 func main() {
+	var err error
+	pageTemplate, err = template.ParseFiles("template/stackoverflow.html")
+	if err != nil {
+		log.Fatal("failed to load tempalte:", err)
+	}
+	http.Handle("/page/assets/", http.StripPrefix("/page/assets/", http.FileServer(http.Dir(os.Args[2]))))
+	http.HandleFunc("/page/", viewHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func viewHandler(w http.ResponseWriter, r *http.Request) {
+	p, err := loadPage("title")
+	if err != nil {
+		log.Fatal("error loading page data:", err)
+	}
+
+	pageTemplate.Execute(w, p)
+}
+
+func loadPage(id string) (*sofp.Question, error) {
 	filename := os.Args[1]
 
 	file, err := os.Open(filename)
@@ -44,7 +67,5 @@ func main() {
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
-
-	jsonstr, _ := json.Marshal(question)
-	fmt.Println(string(jsonstr))
+	return question, nil
 }

@@ -2,6 +2,7 @@ package sofp
 
 import (
 	"fmt"
+	"html/template"
 )
 
 type Row struct {
@@ -51,23 +52,23 @@ type Row struct {
 
 type Question struct {
 	// Post attributes
-	ID                    int    `xml:"Id,attr" json:"Id"`
-	AcceptedAnswerID      int    `xml:"AcceptedAnswerId,attr" json:"AcceptedAnswerId,omitempty"`
-	CreationDate          string `xml:"CreationDate,attr" json:"CreationDate,omitempty"`
-	Score                 string `xml:"Score,attr" json:"Score,omitempty"`
-	ViewCount             string `xml:"ViewCount,attr" json:"ViewCount,omitempty"`
-	Body                  string `xml:"Body,attr" json:"Body,omitempty"`
-	CommunityOwnedDate    string `xml:"CommunityOwnedDate,attr" json:"CommunityOwnedDate,omitempty"`
-	FavoriteCount         int    `xml:"FavoriteCount,attr" json:"FavoriteCount,omitempty"`
-	CommentCount          int    `xml:"CommentCount,attr" json:"CommentCount,omitempty"`
-	AnswerCount           int    `xml:"AnswerCount,attr" json:"AnswerCount,omitempty"`
-	Tags                  string `xml:"Tags,attr" json:"Tags,omitempty"`
-	Title                 string `xml:"Title,attr" json:"Title,omitempty"`
-	LastActivityDate      string `xml:"LastActivityDate,attr" json:"LastActivityDate,omitempty"`
-	LastEditDate          string `xml:"LastEditDate,attr" json:"LastEditDate,omitempty"`
-	LastEditorDisplayName string `xml:"LastEditorDisplayName,attr" json:"LastEditorDisplayName,omitempty"`
-	LastEditorUserId      string `xml:"LastEditorUserId,attr" json:"LastEditorUserId,omitempty"`
-	OwnerUserId           string `xml:"OwnerUserId,attr" json:"OwnerUserId,omitempty"`
+	ID                    int           `xml:"Id,attr" json:"Id"`
+	AcceptedAnswerID      int           `xml:"AcceptedAnswerId,attr" json:"AcceptedAnswerId,omitempty"`
+	CreationDate          string        `xml:"CreationDate,attr" json:"CreationDate,omitempty"`
+	Score                 string        `xml:"Score,attr" json:"Score,omitempty"`
+	ViewCount             string        `xml:"ViewCount,attr" json:"ViewCount,omitempty"`
+	Body                  template.HTML `xml:"Body,attr" json:"Body,omitempty"`
+	CommunityOwnedDate    string        `xml:"CommunityOwnedDate,attr" json:"CommunityOwnedDate,omitempty"`
+	FavoriteCount         int           `xml:"FavoriteCount,attr" json:"FavoriteCount,omitempty"`
+	CommentCount          int           `xml:"CommentCount,attr" json:"CommentCount,omitempty"`
+	AnswerCount           int           `xml:"AnswerCount,attr" json:"AnswerCount,omitempty"`
+	Tags                  string        `xml:"Tags,attr" json:"Tags,omitempty"`
+	Title                 string        `xml:"Title,attr" json:"Title,omitempty"`
+	LastActivityDate      string        `xml:"LastActivityDate,attr" json:"LastActivityDate,omitempty"`
+	LastEditDate          string        `xml:"LastEditDate,attr" json:"LastEditDate,omitempty"`
+	LastEditorDisplayName string        `xml:"LastEditorDisplayName,attr" json:"LastEditorDisplayName,omitempty"`
+	LastEditorUserId      string        `xml:"LastEditorUserId,attr" json:"LastEditorUserId,omitempty"`
+	OwnerUserId           string        `xml:"OwnerUserId,attr" json:"OwnerUserId,omitempty"`
 
 	RelatedPosts []int `xml:"RelatedPostId,attr" json:"RelatedPostId,omitempty"`
 
@@ -85,15 +86,15 @@ type Comment struct {
 }
 
 type Answer struct {
-	ID               int    `xml:"Id,attr" json:"Id"`
-	PostTypeID       string `xml:"PostTypeId,attr" json:"PostTypeId,omitempty"`
-	ParentID         int    `xml:"ParentId,attr" json:"ParentId,omitempty"`
-	CreationDate     string `xml:"CreationDate,attr" json:"CreationDate,omitempty"`
-	Score            string `xml:"Score,attr" json:"Score,omitempty"`
-	Body             string `xml:"Body,attr" json:"Body,omitempty"`
-	CommentCount     int    `xml:"CommentCount,attr" json:"CommentCount,omitempty"`
-	LastActivityDate string `xml:"LastActivityDate,attr" json:"LastActivityDate,omitempty"`
-	OwnerUserId      string `xml:"OwnerUserId,attr" json:"OwnerUserId,omitempty"`
+	ID               int           `xml:"Id,attr" json:"Id"`
+	PostTypeID       string        `xml:"PostTypeId,attr" json:"PostTypeId,omitempty"`
+	ParentID         int           `xml:"ParentId,attr" json:"ParentId,omitempty"`
+	CreationDate     string        `xml:"CreationDate,attr" json:"CreationDate,omitempty"`
+	Score            string        `xml:"Score,attr" json:"Score,omitempty"`
+	Body             template.HTML `xml:"Body,attr" json:"Body,omitempty"`
+	CommentCount     int           `xml:"CommentCount,attr" json:"CommentCount,omitempty"`
+	LastActivityDate string        `xml:"LastActivityDate,attr" json:"LastActivityDate,omitempty"`
+	OwnerUserId      string        `xml:"OwnerUserId,attr" json:"OwnerUserId,omitempty"`
 
 	Comments []Comment `json:"Comments"`
 }
@@ -105,7 +106,7 @@ func (row *Row) GetQuestion() (*Question, error) {
 		CreationDate:          row.CreationDate,
 		Score:                 row.Score,
 		ViewCount:             row.ViewCount,
-		Body:                  row.Body,
+		Body:                  template.HTML(row.Body),
 		CommunityOwnedDate:    row.CommunityOwnedDate,
 		FavoriteCount:         getInt(row.FavoriteCount),
 		CommentCount:          getInt(row.CommentCount),
@@ -134,7 +135,7 @@ func (row *Row) GetAnswer() (*Answer, error) {
 		ID:               *row.ID,
 		CreationDate:     row.CreationDate,
 		Score:            row.Score,
-		Body:             row.Body,
+		Body:             template.HTML(row.Body),
 		CommentCount:     *row.CommentCount,
 		LastActivityDate: row.LastActivityDate,
 		Comments:         []Comment{},
