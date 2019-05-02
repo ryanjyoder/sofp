@@ -16,11 +16,13 @@ var pageTemplate *template.Template
 
 func main() {
 	var err error
-	pageTemplate, err = template.ParseFiles("template/stackoverflow.html")
+	pageTemplateFilepath := filepath.Join(os.Args[2], "stackoverflow.html")
+	staticAssetsDir := filepath.Join(os.Args[2], "static")
+	pageTemplate, err = template.ParseFiles(pageTemplateFilepath)
 	if err != nil {
 		log.Fatal("failed to load tempalte:", err)
 	}
-	http.Handle("/page/assets/", http.StripPrefix("/page/assets/", http.FileServer(http.Dir(os.Args[2]))))
+	http.Handle("/page/assets/", http.StripPrefix("/page/assets/", http.FileServer(http.Dir(staticAssetsDir))))
 	http.HandleFunc("/page/", viewHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
