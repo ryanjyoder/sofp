@@ -3,11 +3,13 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"github.com/ryanjyoder/sofp"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+
+	"github.com/ryanjyoder/sofp"
 )
 
 var pageTemplate *template.Template
@@ -24,20 +26,24 @@ func main() {
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
-	p, err := loadPage("title")
+	p, err := loadPage(filepath.Base(r.URL.Path))
 	if err != nil {
-		log.Fatal("error loading page data:", err)
+		log.Println("error loading page data:", err)
+		http.Error(w, err.Error(), 404)
+		return
 	}
 
 	pageTemplate.Execute(w, p)
 }
 
 func loadPage(id string) (*sofp.Question, error) {
-	filename := os.Args[1]
+	streamsDir := os.Args[1]
+	paddedFilename := id + "000"
+	filepath := filepath.Join(streamsDir, paddedFilename[:3], id)
 
-	file, err := os.Open(filename)
+	file, err := os.Open(filepath)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer file.Close()
 
