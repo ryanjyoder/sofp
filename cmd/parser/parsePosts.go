@@ -2,59 +2,22 @@ package main
 
 import (
 	"fmt"
-	"github.com/cavaliercoder/grab"
-	"github.com/ryanjyoder/sofp"
 	"os"
-	"os/exec"
-	"path/filepath"
+
+	"github.com/ryanjyoder/sofp"
 )
 
 func main() {
 
-	if len(os.Args) != 3 {
+	if len(os.Args) != 2 {
 		fmt.Println("please provide a working directory and a stackoverflow domain to sync")
+		os.Exit(1)
 	}
+	worker, err := sofp.NewWorker(os.Args[1])
+	checkerr("failed to create worker", err)
 
-	workingDir, err := filepath.Abs(os.Args[1])
-	checkerr("couldnt get abs path", err)
-	archiveDir := filepath.Join(workingDir, "1-zips")
-	xmlDir := filepath.Join(workingDir, "2-xmls")
-	parsedDir := filepath.Join(workingDir, "3-streams")
-
-	for _, domain := range []string{os.Args[2]} {
-		filename := domain + ".7z"
-		outputfile := filepath.Join(archiveDir, filename)
-		archiveURL := "https://archive.org/download/stackexchange/" + filename
-		fmt.Println("downloading", outputfile, archiveURL)
-		_, err := grab.Get(outputfile, archiveURL)
-		if err != nil {
-			checkerr("error downloading archive", err)
-		}
-
-		decompressedFiles := filepath.Join(xmlDir, domain)
-		err = os.MkdirAll(decompressedFiles, 0755)
-		checkerr("couldn't created xml directory", err)
-
-		cmd := exec.Command("7z", "x", outputfile)
-		cmd.Dir = decompressedFiles
-
-		fmt.Println("Decompressing files:", outputfile)
-		stdoutStderr, err := cmd.CombinedOutput()
-		fmt.Println("7z message", string(stdoutStderr))
-		checkerr("error decomporessing archive", err)
-
-		archive, err := sofp.NewArchiveParser(sofp.GetFilepathsFromDir(decompressedFiles))
-		checkerr("error open archive", err)
-
-		streamDir := filepath.Join(parsedDir, domain)
-		writer, err := sofp.NewStreamWriter(streamDir)
-		checkerr("could not create stream writer", err)
-
-		fmt.Println("Parsing to streams", decompressedFiles, streamDir)
-		for post := archive.Next(); post != nil; post = archive.Next() {
-			writer.Write(post)
-		}
-	}
+	err = worker.Run()
+	checkerr("couldnt finish parsing:", err)
 }
 
 func checkerr(msg string, err error) {
