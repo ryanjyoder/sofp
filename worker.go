@@ -71,12 +71,12 @@ func (w *Worker) Run() error {
 			filenames = []string{
 				domain + "-Badges.7z",
 				domain + "-Comments.7z",
-				domain + "PostHistory-.7z",
-				domain + "PostLinks-.7z",
-				domain + "Posts-.7z",
-				domain + "Tags-.7z",
-				domain + "Users-.7z",
-				domain + "Votes-.7z",
+				domain + "-PostHistory.7z",
+				domain + "-PostLinks.7z",
+				domain + "-Posts.7z",
+				domain + "-Tags.7z",
+				domain + "-Users.7z",
+				domain + "-Votes.7z",
 			}
 		}
 		decompressedFiles := filepath.Join(xmlDir, domain)
