@@ -120,6 +120,7 @@ func (w *Worker) Run() error {
 		if err != nil {
 			return err
 		}
+		defer writer.Shutdown()
 
 		fmt.Println("Parsing to streams", decompressedFiles, streamDir)
 		lastDelta := &Row{}
@@ -140,7 +141,10 @@ func (w *Worker) Run() error {
 				continue
 			}
 
-			writer.Write(delta)
+			err = writer.Write(delta)
+			if err != nil {
+				return err
+			}
 		}
 		fmt.Println("parsing done ")
 		err = w.setCheckpoint(domain, lastDelta.DeltaType, *lastDelta.ID)

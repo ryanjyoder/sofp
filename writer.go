@@ -2,12 +2,14 @@ package sofp
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 )
 
 type streamWriter struct {
-	baseDir string
+	baseDir  string
+	idToFile map[string]*os.File
 }
 
 type Delta interface {
@@ -16,7 +18,8 @@ type Delta interface {
 
 func NewStreamWriter(baseDir string) (*streamWriter, error) {
 	return &streamWriter{
-		baseDir: baseDir,
+		baseDir:  baseDir,
+		idToFile: map[string]*os.File{},
 	}, nil
 }
 
@@ -25,17 +28,22 @@ func (w *streamWriter) Write(d Delta) error {
 	if streamID == "" {
 		streamID = "0000nostream"
 	}
-	paddedStream := d.StreamID() + "00000000"
-	dir1 := paddedStream[:3]
-	fullDirPath := filepath.Join(w.baseDir, dir1)
-	fullFilePath := filepath.Join(fullDirPath, streamID)
-	os.MkdirAll(fullDirPath, 0755)
-	f, err := os.OpenFile(fullFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-	if err != nil {
-		return err
+	f, ok := w.idToFile[streamID]
+	var err error
+	if !ok {
+		//fmt.Println("opening stream:", streamID)
+		paddedStream := "00000000" + d.StreamID()
+		dir1 := paddedStream[len(paddedStream)-3:]
+		fullDirPath := filepath.Join(w.baseDir, dir1)
+		fullFilePath := filepath.Join(fullDirPath, streamID)
+		os.MkdirAll(fullDirPath, 0755)
+		f, err = os.OpenFile(fullFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			fmt.Println("cant open file:", err)
+			return err
+		}
+		w.idToFile[streamID] = f
 	}
-
-	defer f.Close()
 
 	text, err := json.Marshal(d)
 	if err != nil {
@@ -43,11 +51,19 @@ func (w *streamWriter) Write(d Delta) error {
 	}
 	_, err = f.WriteString(string(text))
 	if err != nil {
+		fmt.Println("couldnt write to file:", err)
 		return err
 	}
 	_, err = f.WriteString("\n")
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (w *streamWriter) Shutdown() error {
+	for _, f := range w.idToFile {
+		f.Close()
 	}
 	return nil
 }

@@ -43,7 +43,7 @@ type Row struct {
 	LinkTypeID    string `xml:"LinkTypeId,attr" json:"LinkTypeId,omitempty"`
 
 	// Votes
-	VoteTypeId int `xml:"VoteTypeId" json:"VoteTypeId,omitempty"`
+	VoteTypeId int `xml:"VoteTypeId,attr" json:"VoteTypeId,omitempty"`
 
 	Stream    string `json:"StreamID"`
 	DeltaType string `json:"DeltaType"`
