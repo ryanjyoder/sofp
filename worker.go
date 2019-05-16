@@ -129,7 +129,9 @@ func (w *Worker) Run() error {
 			return err
 		}
 		streamIsReset := checkpointType == ""
-		fmt.Println("resetting stream:")
+		if !streamIsReset {
+			fmt.Println("resetting stream:")
+		}
 		for delta := archive.Next(); delta != nil; delta = archive.Next() {
 			lastDelta = delta
 			if delta.DeltaType == checkpointType && toInt(delta.ID) == checkpointID {
