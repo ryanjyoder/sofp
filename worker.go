@@ -107,7 +107,7 @@ func (w *Worker) processDomain(domain string) error {
 }
 
 func (w *Worker) parseXml(domain string) error {
-	xmlDomainDir := filepath.Join(w.workingDir, ZipSubir, domain)
+	xmlDomainDir := filepath.Join(w.workingDir, XmlSubdir, domain)
 
 	archive, err := NewArchiveParser(GetFilepathsFromDir(xmlDomainDir))
 	if err != nil {
