@@ -26,7 +26,7 @@ const (
 type Worker struct {
 	workingDir          string
 	db                  *sql.DB
-	dbMutex             sync.Mutex
+	dbMutex             *sync.Mutex
 	decompressSemaphore *semaphore.Weighted
 }
 
@@ -64,7 +64,7 @@ func NewWorker(workingDir string) (*Worker, error) {
 	return &Worker{
 		workingDir:          workingDir,
 		db:                  database,
-		dbMutex:             sync.Mutex{},
+		dbMutex:             &sync.Mutex{},
 		decompressSemaphore: semaphore.NewWeighted(8),
 	}, nil
 }
