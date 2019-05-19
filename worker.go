@@ -275,6 +275,7 @@ func (w *Worker) getCheckpoint(domain string) (string, int, error) {
 	if err != nil {
 		return "", 0, err
 	}
+	defer rows.Close()
 	var checkpointType *string
 	var checkpointID *int
 	if rows.Next() {
@@ -299,6 +300,7 @@ func (w *Worker) isDecompressed(domain string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
 
 	isDecompressed := false
 	if rows.Next() {
