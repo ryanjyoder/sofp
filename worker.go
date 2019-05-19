@@ -28,6 +28,7 @@ type Worker struct {
 	db                  *sql.DB
 	dbMutex             *sync.Mutex
 	decompressSemaphore *semaphore.Weighted
+	parseSemaphore      *semaphore.Weighted
 }
 
 func NewWorker(workingDir string) (*Worker, error) {
@@ -66,6 +67,7 @@ func NewWorker(workingDir string) (*Worker, error) {
 		db:                  database,
 		dbMutex:             &sync.Mutex{},
 		decompressSemaphore: semaphore.NewWeighted(8),
+		parseSemaphore:      semaphore.NewWeighted(8),
 	}, nil
 }
 
@@ -107,6 +109,12 @@ func (w *Worker) processDomain(domain string) error {
 }
 
 func (w *Worker) parseXml(domain string) error {
+
+	fmt.Println("aquiring parsing resource:", domain)
+	w.parseSemaphore.Acquire(context.Background(), 1)
+	defer w.parseSemaphore.Release(1)
+	fmt.Println("starting parsing:", domain)
+
 	xmlDomainDir := filepath.Join(w.workingDir, XmlSubdir, domain)
 
 	archive, err := NewArchiveParser(GetFilepathsFromDir(xmlDomainDir))
