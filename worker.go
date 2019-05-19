@@ -79,7 +79,10 @@ func (w *Worker) Run() error {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
-			w.processDomain(d)
+			err := w.processDomain(d)
+			if err != nil {
+				fmt.Println("error processing domain:", err)
+			}
 		}(domain)
 	}
 	wg.Wait()
@@ -188,15 +191,16 @@ func (w *Worker) decompressZips(domain string) error {
 		return nil
 	}
 
+	fmt.Println("aquiring 7z resource:", domain)
 	w.decompressSemaphore.Acquire(context.Background(), 1)
 	defer w.decompressSemaphore.Release(1)
+	fmt.Println("starting decompress:", domain)
 
 	archiveDir := filepath.Join(w.workingDir, ZipSubir)
 	xmlDir := filepath.Join(w.workingDir, XmlSubdir)
+	xmlDomainDir := filepath.Join(xmlDir, domain)
 
 	filenames := get7zFilenames(domain)
-
-	xmlDomainDir := filepath.Join(xmlDir, domain)
 
 	err = os.MkdirAll(xmlDomainDir, 0755)
 	if err != nil {
