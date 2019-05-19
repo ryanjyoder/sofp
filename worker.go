@@ -46,10 +46,10 @@ func NewWorker(workingDir string) (*Worker, error) {
 	statement, err := database.Prepare(`
 		CREATE TABLE IF NOT EXISTS sites (
 			domain text PRIMARY KEY,
-			active BOOLEAN,
+			active BOOLEAN DEFAULT false NOT NULL,
 			archiveLastModified DATETIME,
 			downloadComplete BOOLEAN,
-			isDecompressed BOOLEAN,
+			isDecompressed BOOLEAN DEFAULT false NOT NULL,
 			lastDeltaType TEXT,
 			lastDeltaId INT
 		)`)
