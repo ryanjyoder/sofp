@@ -75,6 +75,7 @@ func (w *streamWriter) ExportStreams(dir string) error {
 	if err != nil {
 		return err
 	}
+	resp.Close()
 	for resp.Next() {
 		streamID := ""
 		resp.Scan(&streamID)
@@ -83,24 +84,34 @@ func (w *streamWriter) ExportStreams(dir string) error {
 		fullDirPath := filepath.Join(dir, dir1)
 		fullFilePath := filepath.Join(fullDirPath, streamID)
 		os.MkdirAll(fullDirPath, 0755)
-		f, err := os.OpenFile(fullFilePath, os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			fmt.Println("cant open file:", err)
-			return err
-		}
-		defer f.Close()
 
 		rows, err := w.db.Query(`SELECT msg streamID FROM deltas WHERE streamID=? ORDER BY id`, streamID)
 		if err != nil {
 			return err
 		}
 
-		for rows.Next() {
-			msg := ""
-			rows.Scan(&msg)
-			f.WriteString(msg + "\n")
+		err = writeRows(fullFilePath, rows)
+		rows.Close()
+		if err != nil {
+			return err
 		}
-
 	}
+	return nil
+}
+func writeRows(fullFilePath string, rows *sql.Rows) error {
+
+	f, err := os.OpenFile(fullFilePath, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("cant open file:", err)
+		return err
+	}
+	defer f.Close()
+
+	for rows.Next() {
+		msg := ""
+		rows.Scan(&msg)
+		f.WriteString(msg + "\n")
+	}
+
 	return nil
 }
