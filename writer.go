@@ -69,6 +69,7 @@ func (w *streamWriter) Write(d Delta) error {
 
 func (w *streamWriter) ExportStreams(dir string) error {
 	fmt.Println("exporting streams")
+	os.RemoveAll(dir)
 	os.MkdirAll(dir, 0755)
 	w.db.Exec(`CREATE INDEX streamid_idx on deltas(streamID)`)
 	resp, err := w.db.Query(`SELECT DISTINCT streamID from deltas`)

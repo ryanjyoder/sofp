@@ -123,18 +123,23 @@ func (w *Worker) parseXml(domain string) error {
 	}
 
 	sqliteDomainDir := filepath.Join(w.workingDir, SqliteSubdir, domain)
-	writer, err := NewStreamWriter(sqliteDomainDir)
-	if err != nil {
-		return err
-	}
-
 	fmt.Println("Parsing to streams", xmlDomainDir, sqliteDomainDir)
 	lastDelta := &Row{}
 	checkpointType, checkpointID, err := w.getCheckpoint(domain)
 	if err != nil {
 		return err
 	}
+
 	streamIsReset := checkpointType == ""
+	if streamIsReset {
+		// if there is no checkpoint clear the sqlite db just in case
+		os.RemoveAll(sqliteDomainDir)
+	}
+	writer, err := NewStreamWriter(sqliteDomainDir)
+	if err != nil {
+		return err
+	}
+
 	if !streamIsReset {
 		fmt.Println("resetting stream:")
 	}
