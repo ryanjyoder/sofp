@@ -76,7 +76,7 @@ func (w *streamWriter) ExportStreams(dir string) error {
 	if err != nil {
 		return err
 	}
-	resp.Close()
+	defer resp.Close()
 	for resp.Next() {
 		streamID := ""
 		resp.Scan(&streamID)
