@@ -2,7 +2,7 @@ package sofp
 
 import (
 	"encoding/xml"
-	"os"
+	"io"
 	"time"
 )
 
@@ -14,20 +14,13 @@ func (row *Row) StreamID() string {
 	return row.Stream
 }
 
-func NewParser(file string, updateType string) (*RowsParser, error) {
-
-	xmlFile, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-
+func NewParser(xmlFile io.Reader, updateType string) (*RowsParser, error) {
 	psr := &RowsParser{
 		postChan: make(chan *Row),
 	}
 
 	go func() {
 		defer close(psr.postChan)
-		defer xmlFile.Close()
 		decoder := xml.NewDecoder(xmlFile)
 
 		for {
@@ -44,6 +37,7 @@ func NewParser(file string, updateType string) (*RowsParser, error) {
 					err := decoder.DecodeElement(&p, &se)
 					p.err = err
 					p.DeltaType = updateType
+					p.DeltaID = p.GetID()
 					psr.postChan <- &p
 				}
 

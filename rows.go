@@ -5,6 +5,14 @@ import (
 	"html/template"
 )
 
+const (
+	PostsType       = "Posts"
+	PostHistoryType = "PostHistory"
+	CommentsType    = "Comments"
+	PostLinksType   = "PostLinks"
+	VotesType       = "Votes"
+)
+
 type Row struct {
 	// Post attributes
 	ID                    *int   `xml:"Id,attr" json:"Id"`
@@ -15,17 +23,18 @@ type Row struct {
 	Score                 string `xml:"Score,attr" json:"Score,omitempty"`
 	ViewCount             string `xml:"ViewCount,attr" json:"ViewCount,omitempty"`
 	Body                  string `xml:"Body,attr" json:"Body,omitempty"`
-	CommunityOwnedDate    string `xml:"CommunityOwnedDate,attr" json:"CommunityOwnedDate,omitempty"`
-	FavoriteCount         *int   `xml:"FavoriteCount,attr" json:"FavoriteCount,omitempty"`
-	CommentCount          *int   `xml:"CommentCount,attr" json:"CommentCount,omitempty"`
-	AnswerCount           *int   `xml:"AnswerCount,attr" json:"AnswerCount,omitempty"`
-	Tags                  string `xml:"Tags,attr" json:"Tags,omitempty"`
-	Title                 string `xml:"Title,attr" json:"Title,omitempty"`
-	LastActivityDate      string `xml:"LastActivityDate,attr" json:"LastActivityDate,omitempty"`
-	LastEditDate          string `xml:"LastEditDate,attr" json:"LastEditDate,omitempty"`
-	LastEditorDisplayName string `xml:"LastEditorDisplayName,attr" json:"LastEditorDisplayName,omitempty"`
-	LastEditorUserId      string `xml:"LastEditorUserId,attr" json:"LastEditorUserId,omitempty"`
 	OwnerUserId           string `xml:"OwnerUserId,attr" json:"OwnerUserId,omitempty"`
+	LastEditorUserId      string `xml:"LastEditorUserId,attr" json:"LastEditorUserId,omitempty"`
+	LastEditorDisplayName string `xml:"LastEditorDisplayName,attr" json:"LastEditorDisplayName,omitempty"`
+	LastEditDate          string `xml:"LastEditDate,attr" json:"LastEditDate,omitempty"`
+	LastActivityDate      string `xml:"LastActivityDate,attr" json:"LastActivityDate,omitempty"`
+	CommunityOwnedDate    string `xml:"CommunityOwnedDate,attr" json:"CommunityOwnedDate,omitempty"`
+	ClosedDate            string `xml:"ClosedDate,attr" json:"ClosedDate,omitempty"`
+	Title                 string `xml:"Title,attr" json:"Title,omitempty"`
+	Tags                  string `xml:"Tags,attr" json:"Tags,omitempty"`
+	AnswerCount           *int   `xml:"AnswerCount,attr" json:"AnswerCount,omitempty"`
+	CommentCount          *int   `xml:"CommentCount,attr" json:"CommentCount,omitempty"`
+	FavoriteCount         *int   `xml:"FavoriteCount,attr" json:"FavoriteCount,omitempty"`
 
 	// PostHistory Attributes
 	PostHistoryTypeID string `xml:"PostHistoryTypeId,attr" json:"PostHistoryTypeId,omitempty"`
@@ -35,6 +44,7 @@ type Row struct {
 	Comment           string `xml:"Comment,attr" json:"Comment,omitempty"`
 	Text              string `xml:"Text,attr" json:"Text,omitempty"`
 	UserDisplayName   string `xml:"UserDisplayName,attr" json:"UserDisplayName,omitempty"`
+	CloseReasonID     *int   `xml:"CloseReasonId,attr" json:"CloseReasonId,omitempty"`
 
 	// No Comments only attributes
 
@@ -43,11 +53,21 @@ type Row struct {
 	LinkTypeID    string `xml:"LinkTypeId,attr" json:"LinkTypeId,omitempty"`
 
 	// Votes
-	VoteTypeId int `xml:"VoteTypeId,attr" json:"VoteTypeId,omitempty"`
+	VoteTypeId   int      `xml:"VoteTypeId,attr" json:"VoteTypeId,omitempty"`
+	BountyAmount *float64 `xml:"BountyAmount,attr" json:"BountyAmount,omitempty"`
 
+	DeltaID   string `json:"_id"`
 	Stream    string `json:"StreamID"`
 	DeltaType string `json:"DeltaType"`
 	err       error
+}
+
+func (r *Row) GetID() string {
+	return fmt.Sprintf("%s-%d", r.DeltaType, getInt(r.ID))
+}
+
+func (r *Row) GetRev() string {
+	return ""
 }
 
 type Question struct {
@@ -123,7 +143,7 @@ func (row *Row) GetQuestion() (*Question, error) {
 		Answers:               []*Answer{},
 	}
 
-	if row.DeltaType != PostType || row.PostTypeID != "1" {
+	if row.DeltaType != PostsType || row.PostTypeID != "1" {
 		return q, fmt.Errorf("row not of type Question")
 	}
 
@@ -141,7 +161,7 @@ func (row *Row) GetAnswer() (*Answer, error) {
 		Comments:         []Comment{},
 	}
 
-	if row.DeltaType != PostType || row.PostTypeID != "2" {
+	if row.DeltaType != PostsType || row.PostTypeID != "2" {
 		return a, fmt.Errorf("row not of type Answer")
 	}
 
@@ -175,7 +195,7 @@ func (q *Question) AppendRow(r *Row) error {
 		q.AppendComment(c)
 		return nil
 
-	case PostType:
+	case PostsType:
 		a, err := r.GetAnswer()
 		if err != nil {
 			return err
