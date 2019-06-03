@@ -19,7 +19,6 @@ parts:
     source: .
     plugin: go
     go-packages: ["github.com/ryanjyoder/sofp/cmd/downloader"]
-    go-importpath: "github.com/ryanjyoder/sofp"
     build-packages:
       - git
     override-build: |
