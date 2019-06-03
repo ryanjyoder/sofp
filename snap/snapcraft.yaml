@@ -4,14 +4,14 @@ summary: A (S)tack (O)ver(f)low (P)arser
 description: SOFP downloads and parses the archives hosted at https://archive.org/details/stackexchange.
 grade: stable
 confinement: strict
-base: core18
+base: core
 
 
 apps:
   sofp:
     command: bin/wrapper
     daemon: simple
-    plugs: [network]
+    plugs: [network, removable-media]
   
 
 parts:
