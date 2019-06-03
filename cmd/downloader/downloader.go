@@ -22,6 +22,6 @@ func main() {
 	}
 	err = worker.Run()
 	if err != nil {
-		log.Fatal("worker failed:", err)
+		log.Fatal("worker failed to run:", err)
 	}
 }
