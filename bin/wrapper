@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+export COUCHDB_HOST="$(snapctl get couchdb.host)"
+export COUCHDB_USER="$(snapctl get couchdb.user)"
+export COUCHDB_PASS="$(snapctl get couchdb.pass)"
+
+$SNAP/bin/downloader $SNAP_COMMON

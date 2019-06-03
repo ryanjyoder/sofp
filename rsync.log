@@ -1,4 +1,0 @@
-2019/05/11 19:49:01 [5964] rsyncd version 2.6.9 starting, listening on port 12000
-2019/05/11 19:49:45 [6000] connect from localhost (::1)
-2019/05/11 19:49:45 [6000] module-list request from localhost (::1)
-2019/05/11 19:52:04 [5964] rsync error: received SIGINT, SIGTERM, or SIGHUP (code 20) at /BuildRoot/Library/Caches/com.apple.xbs/Sources/rsync/rsync-52.200.1/rsync/rsync.c(244) [receiver=2.6.9]

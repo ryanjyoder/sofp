@@ -137,7 +137,7 @@ func main() {
 		}
 	}
 
-	// Vptes
+	// Votes
 	votesZip := get7zFilename(domain, sofp.VotesType)
 	zipFile = filepath.Join(archiveDir, votesZip)
 
