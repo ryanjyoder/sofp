@@ -5,5 +5,5 @@ export COUCHDB_HOST="$(snapctl get couchdb.host)"
 export COUCHDB_USER="$(snapctl get couchdb.user)"
 export COUCHDB_PASS="$(snapctl get couchdb.pass)"
 
-## Start daemon ##
+### Start daemon ###
 $SNAP/bin/downloader $SNAP_COMMON

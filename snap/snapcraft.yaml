@@ -1,7 +1,7 @@
 name: sofp
-version: '0.1'
+version: '0.0.1'
 summary: A (S)tack (O)ver(f)low (P)arser
-description: Sofp downloads and parses the archives hosted at https://archive.org/details/stackexchange.
+description: SOFP downloads and parses the archives hosted at https://archive.org/details/stackexchange.
 grade: stable
 confinement: strict
 base: core18
