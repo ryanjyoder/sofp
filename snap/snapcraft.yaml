@@ -2,7 +2,7 @@ name: sofp
 version: '0.1'
 summary: A (S)tack (O)ver(f)low (P)arser
 description: Sofp downloads and parses the archives hosted at https://archive.org/details/stackexchange.
-grade: devel
+grade: stable
 confinement: strict
 base: core18
 
@@ -23,10 +23,13 @@ parts:
     build-packages:
       - git
     override-build: |
+      echo _______________________ Building Binary _______________________________
       go build cmd/downloader/downloader.go
+      echo _______________________ Build finished ________________________________
       mkdir  -p $SNAPCRAFT_PART_INSTALL/bin
       cp downloader $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/wrapper $SNAPCRAFT_PART_INSTALL/bin/
+      echo _______________________ Building finsihed ___________________________
   
 
       
