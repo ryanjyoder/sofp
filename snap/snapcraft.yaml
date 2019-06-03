@@ -23,6 +23,7 @@ parts:
     build-packages:
       - git
     override-build: |
+      export GO111MODULE=on
       echo _______________________ Building Binary _______________________________
       go build cmd/downloader/downloader.go
       echo _______________________ Build finished ________________________________
