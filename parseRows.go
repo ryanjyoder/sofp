@@ -36,7 +36,6 @@ func NewParser(xmlFile io.Reader) (*RowsParser, error) {
 					var p Row
 					err := decoder.DecodeElement(&p, &se)
 					p.err = err
-					p.DeltaID = p.GetID()
 					psr.postChan <- &p
 				}
 
