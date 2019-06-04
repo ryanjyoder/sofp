@@ -10,7 +10,7 @@ then
     exit 1
 fi
 
-export PATH=$SNAP/usr/lib/p7zip:$PATH
+export PATH=$SNAP/bin:$PATH
 
 ### Start daemon ###
 $SNAP/bin/downloader $SNAP_COMMON

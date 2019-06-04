@@ -110,8 +110,8 @@ func (w *Worker) getXmlReader(domain string, deltaType string) (io.ReadCloser, e
 	if err != nil {
 		return nil, err
 	}
-	cmd.Start()
-	return stdout, nil
+
+	return stdout, cmd.Start()
 }
 
 type dySlice struct {
