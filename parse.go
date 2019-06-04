@@ -17,13 +17,13 @@ func (w *Worker) parseDomain(domain string) error {
 	if err != nil {
 		return err
 	}
-	if len(lookup) == nil {
+	if len(lookup) < 1 {
 		return fmt.Errorf("error getting postiID lookup")
 	}
 	fmt.Println("ready to read PostHistory:", len(lookup), err)
 
 	dbName := strings.ReplaceAll(domain, ".", "_")
-	resp, err := w.couchClient.Create(dbName)
+	_, err = w.couchClient.Create(dbName)
 	if err != nil {
 		cErr, ok := err.(*couchdb.Error)
 		if !(ok && cErr.StatusCode == 412) {
@@ -63,7 +63,8 @@ func (w *Worker) parseDomain(domain string) error {
 		}
 	}
 	if len(bulk) > 0 {
-		db.Bulk(bulk)
+		_, err := db.Bulk(bulk)
+		return err
 	}
 	return nil
 
