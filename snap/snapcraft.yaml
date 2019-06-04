@@ -19,6 +19,8 @@ parts:
     source: .
     plugin: go
     go-packages: ["github.com/ryanjyoder/sofp/cmd/downloader"]
+    stage-packages:
+      - p7zip-full
     build-packages:
       - git
     override-build: |
