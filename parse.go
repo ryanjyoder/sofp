@@ -49,7 +49,7 @@ func (w *Worker) parseDomain(domain string) error {
 	n := 25
 	bulk := []couchdb.CouchDoc{}
 	for row := psr.Next(); row != nil; row = psr.Next() {
-		row.Stream = fmt.Sprintf("%d", lookup[*row.ID])
+		row.Stream = fmt.Sprintf("%d", lookup[*row.PostID])
 		row.DeltaType = "PostHistory"
 		row.DeltaID = row.GetID()
 		bulk = append(bulk, row)
