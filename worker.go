@@ -79,7 +79,10 @@ func (w *Worker) singleRun() error {
 		go func(d string) {
 			defer wg.Done()
 			defer w.parseSemephore.Release(1)
-			w.parseDomain(d)
+			err := w.parseDomain(d)
+			if err != nil {
+				log.Println("Error parsing domain:", d, err)
+			}
 		}(domain)
 	}
 	wg.Wait()
