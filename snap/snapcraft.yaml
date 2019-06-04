@@ -31,6 +31,7 @@ parts:
       mkdir  -p $SNAPCRAFT_PART_INSTALL/bin
       cp downloader $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/wrapper $SNAPCRAFT_PART_INSTALL/bin/
+      cp bin/7z $SNAPCRAFT_PART_INSTALL/bin/
       echo _______________________ Building finsihed ___________________________
   
 
