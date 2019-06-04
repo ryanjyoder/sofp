@@ -102,10 +102,10 @@ func (w *Worker) getXmlReader(domain string, deltaType string) (io.ReadCloser, e
 	_, err := os.Stat(postZipFilanme)
 	// hmmm try with '-Post' postfix
 	if err != nil {
-		postZipFilanme = filepath.Join(w.workingDir, "zips", domain+"-Posts.7z")
+		postZipFilanme = filepath.Join(w.workingDir, "zips", domain+"-"+deltaType+".7z")
 	}
 
-	cmd := exec.Command("7z", "e", "-so", postZipFilanme, "Posts.xml")
+	cmd := exec.Command("7z", "e", "-so", postZipFilanme, deltaType+".xml")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
