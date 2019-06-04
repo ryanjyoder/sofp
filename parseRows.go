@@ -14,7 +14,7 @@ func (row *Row) StreamID() string {
 	return row.Stream
 }
 
-func NewParser(xmlFile io.Reader, updateType string) (*RowsParser, error) {
+func NewParser(xmlFile io.Reader) (*RowsParser, error) {
 	psr := &RowsParser{
 		postChan: make(chan *Row),
 	}
@@ -36,7 +36,6 @@ func NewParser(xmlFile io.Reader, updateType string) (*RowsParser, error) {
 					var p Row
 					err := decoder.DecodeElement(&p, &se)
 					p.err = err
-					p.DeltaType = updateType
 					p.DeltaID = p.GetID()
 					psr.postChan <- &p
 				}

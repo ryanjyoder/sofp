@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/cavaliercoder/grab"
 )
@@ -89,6 +90,14 @@ func (w *Worker) prepareDownloads() error {
 		err := os.RemoveAll(zipsDir)
 		if err != nil {
 			return err
+		}
+		// if the hash has actually change, opposed to Sites.xml never existing
+		// we're going to wait a few hours just in case the upload is still in progress
+		// we could replace this with an actually check of each file's modification date.
+		// but honest you already waited 3 months, what's 12 morre hours
+		if oldSiteshash != "" {
+			log.Println("pausing to make sure the complete upload is finished")
+			time.Sleep(12 * time.Hour)
 		}
 	}
 	os.MkdirAll(zipsDir, 0755)

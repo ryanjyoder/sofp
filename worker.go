@@ -1,12 +1,17 @@
 package sofp
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
+	"time"
 
+	"github.com/ryanjyoder/couchdb"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -14,6 +19,7 @@ type Worker struct {
 	workingDir        string
 	downloadSemephore *semaphore.Weighted
 	parseSemephore    *semaphore.Weighted
+	couchClient       couchdb.ClientService
 }
 
 type WorkerConfigs struct {
@@ -30,22 +36,54 @@ func NewWorker(configs WorkerConfigs) (*Worker, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	u, err := url.Parse(configs.CouchDBHost)
+	if err != nil {
+		return nil, err
+	}
+	// create a new client
+	client, err := couchdb.NewAuthClient(configs.CouchDBUser, configs.CouchDBPass, u)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Worker{
 		workingDir:        workingDir,
 		downloadSemephore: semaphore.NewWeighted(configs.SimultaneousDownloads),
+		parseSemephore:    semaphore.NewWeighted(configs.SimultaneousParsers),
+		couchClient:       client,
 	}, nil
 }
 
 func (w *Worker) Run() error {
+	for {
+		err := w.singleRun()
+		if err != nil {
+			log.Println("Error during run:", err)
+		}
+		time.Sleep(24 * time.Hour)
+	}
+}
+
+func (w *Worker) singleRun() error {
 	completedDomains, err := w.getDownloaded()
 	if err != nil {
 		return err
 	}
 
 	log.Println("Begin parsing")
+	wg := sync.WaitGroup{}
 	for domain := range completedDomains {
-		fmt.Println("downloaded:", domain)
+		w.parseSemephore.Acquire(context.TODO(), 1)
+		wg.Add(1)
+		go func(d string) {
+			defer wg.Done()
+			defer w.parseSemephore.Release(1)
+			w.parseDomain(d)
+		}(domain)
 	}
+	wg.Wait()
+	log.Println("finished this run")
 	return nil
 }
 
