@@ -3,7 +3,6 @@ package sofp
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,7 +14,12 @@ import (
 func (w *Worker) parseDomain(domain string) error {
 
 	lookup, err := w.getStreamLookup(domain)
-
+	if err != nil {
+		return err
+	}
+	if len(lookup) == nil {
+		return fmt.Errorf("error getting postiID lookup")
+	}
 	fmt.Println("ready to read PostHistory:", len(lookup), err)
 
 	dbName := strings.ReplaceAll(domain, ".", "_")
@@ -23,7 +27,7 @@ func (w *Worker) parseDomain(domain string) error {
 	if err != nil {
 		cErr, ok := err.(*couchdb.Error)
 		if !(ok && cErr.StatusCode == 412) {
-			log.Fatal(resp, err)
+			return err
 		}
 	}
 	db := w.couchClient.Use(dbName)
