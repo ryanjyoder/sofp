@@ -113,8 +113,8 @@ func GetDefaultConfigs() (WorkerConfigs, error) {
 	}
 	cfg.CouchDBPass = couchdbPass
 
-	simDownloadStr, ok := os.LookupEnv("SIMULTANEOUS_DOWNLOAD")
-	if !ok {
+	simDownloadStr, _ := os.LookupEnv("SIMULTANEOUS_DOWNLOAD")
+	if simDownloadStr == "" {
 		simDownloadStr = "10"
 	}
 	simDownload, err := strconv.Atoi(simDownloadStr)
@@ -123,8 +123,8 @@ func GetDefaultConfigs() (WorkerConfigs, error) {
 	}
 	cfg.SimultaneousDownloads = int64(simDownload)
 
-	simParseStr, ok := os.LookupEnv("SIMULTANEOUS_PARSE")
-	if !ok {
+	simParseStr, _ := os.LookupEnv("SIMULTANEOUS_PARSE")
+	if simParseStr == "" {
 		simParseStr = "1"
 	}
 	simParse, err := strconv.Atoi(simParseStr)
