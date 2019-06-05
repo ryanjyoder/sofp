@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
+	"strconv"
 	"sync"
 	"time"
 
@@ -91,30 +91,48 @@ func (w *Worker) singleRun() error {
 }
 
 func GetDefaultConfigs() (WorkerConfigs, error) {
+	cfg := WorkerConfigs{}
 	if len(os.Args) < 2 {
-		return WorkerConfigs{}, fmt.Errorf("storage directory not provided")
+		return cfg, fmt.Errorf("storage directory not provided")
 	}
 	couchdbHost, ok := os.LookupEnv("COUCHDB_HOST")
 	if !ok {
-		return WorkerConfigs{}, fmt.Errorf("env COUCHDB_HOST not set")
+		return cfg, fmt.Errorf("env COUCHDB_HOST not set")
 	}
+	cfg.CouchDBHost = couchdbHost
 
 	couchdbUser, ok := os.LookupEnv("COUCHDB_USER")
 	if !ok {
-		return WorkerConfigs{}, fmt.Errorf("env COUCHDB_USER not set")
+		return cfg, fmt.Errorf("env COUCHDB_USER not set")
 	}
+	cfg.CouchDBUser = couchdbUser
 
 	couchdbPass, ok := os.LookupEnv("COUCHDB_PASS")
 	if !ok {
-		return WorkerConfigs{}, fmt.Errorf("env COUCHDB_HOST not set")
+		return cfg, fmt.Errorf("env COUCHDB_HOST not set")
 	}
+	cfg.CouchDBPass = couchdbPass
 
-	return WorkerConfigs{
-		StorageDirectory:      os.Args[1],
-		SimultaneousDownloads: 10,
-		SimultaneousParsers:   int64(runtime.NumCPU()),
-		CouchDBHost:           couchdbHost,
-		CouchDBUser:           couchdbUser,
-		CouchDBPass:           couchdbPass,
-	}, nil
+	simDownloadStr, ok := os.LookupEnv("SIMULTANEOUS_DOWNLOAD")
+	if !ok {
+		simDownloadStr = "10"
+	}
+	simDownload, err := strconv.Atoi(simDownloadStr)
+	if err != nil {
+		return cfg, err
+	}
+	cfg.SimultaneousDownloads = simDownload
+
+	simParseStr, ok := os.LookupEnv("SIMULTANEOUS_PARSE")
+	if !ok {
+		simParseStr = "1"
+	}
+	simParse, err := strconv.Atoi(simParseStr)
+	if err != nil {
+		return cfg, err
+	}
+	cfg.SimultaneousParsers = simParse
+	cfg.StorageDirectory = os.Args[1]
+
+	return cfg, nil
 }
