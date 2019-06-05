@@ -121,7 +121,7 @@ func GetDefaultConfigs() (WorkerConfigs, error) {
 	if err != nil {
 		return cfg, err
 	}
-	cfg.SimultaneousDownloads = simDownload
+	cfg.SimultaneousDownloads = int64(simDownload)
 
 	simParseStr, ok := os.LookupEnv("SIMULTANEOUS_PARSE")
 	if !ok {
@@ -131,7 +131,7 @@ func GetDefaultConfigs() (WorkerConfigs, error) {
 	if err != nil {
 		return cfg, err
 	}
-	cfg.SimultaneousParsers = simParse
+	cfg.SimultaneousParsers = int64(simParse)
 	cfg.StorageDirectory = os.Args[1]
 
 	return cfg, nil
