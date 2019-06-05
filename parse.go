@@ -75,7 +75,7 @@ func (w *Worker) parseDomain(domain string) error {
 
 }
 
-func (w *Worker) getStreamLookup(domain string) ([]int, error) {
+func (w *Worker) getStreamLookup(domain string) (map[int]int, error) {
 	stdout, err := w.getXmlReader(domain, "Posts")
 	if err != nil {
 		return nil, err
@@ -83,23 +83,23 @@ func (w *Worker) getStreamLookup(domain string) ([]int, error) {
 	defer stdout.Close()
 	psr, err := NewParser(stdout)
 	if err != nil {
-		return []int{}, err
+		return map[int]int{}, err
 	}
 
-	lookup := dySlice{}
+	lookup := map[int]int{}
 	for row := psr.Next(); row != nil; row = psr.Next() {
 		if row.err != nil {
 			fmt.Println("error parsing row:", row.err)
 			continue
 		}
 		if row.PostTypeID == "1" {
-			lookup.insert(*row.ID, *row.ID)
+			lookup[*row.ID] = *row.ID
 		}
 		if row.PostTypeID == "2" {
-			lookup.insert(*row.ID, *row.ParentID)
+			lookup[*row.ID] = *row.ParentID
 		}
 	}
-	return lookup.s, nil
+	return lookup, nil
 }
 
 func (w *Worker) getXmlReader(domain string, deltaType string) (io.ReadCloser, error) {
