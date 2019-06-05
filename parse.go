@@ -3,15 +3,16 @@ package sofp
 import (
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/ryanjyoder/couchdb"
 )
 
 func (w *Worker) parseDomain(domain string) error {
+	log.Println("Starting to parse:", domain)
 
 	lookup, err := w.getStreamLookup(domain)
 	if err != nil {
@@ -20,18 +21,13 @@ func (w *Worker) parseDomain(domain string) error {
 	if len(lookup) < 1 {
 		return fmt.Errorf("error getting postiID lookup")
 	}
-	fmt.Println("ready to read PostHistory:", len(lookup), err)
+	log.Println("Loaded stream lookup table:", len(lookup), err)
 
-	dbName := strings.ReplaceAll(domain, ".", "_")
-	_, err = w.couchClient.Create(dbName)
+	db, err := w.prepareDB(domain)
 	if err != nil {
-		cErr, ok := err.(*couchdb.Error)
-		if !(ok && cErr.StatusCode == 412) {
-			return err
-		}
+		return err
 	}
-	db := w.couchClient.Use(dbName)
-	historyReader, err := w.getXmlReader(domain, "PostHistory")
+	historyReader, err := w.getXmlReader(domain, PostHistoryType)
 	if err != nil {
 		return err
 	}
@@ -40,17 +36,24 @@ func (w *Worker) parseDomain(domain string) error {
 	if err != nil {
 		return err
 	}
-
-	psr, err = NewParser(historyReader)
+	lastSeenID, err := getLastSeenID(db, PostHistoryType)
 	if err != nil {
 		return err
 	}
-
+	if lastSeenID != 0 {
+		log.Println("resetting parser to checkpoint:", lastSeenID)
+	}
 	n := 25
 	bulk := []couchdb.CouchDoc{}
 	for row := psr.Next(); row != nil; row = psr.Next() {
+		if lastSeenID >= *row.ID {
+			if lastSeenID == *row.ID {
+				log.Println("ok reset. begining insert")
+			}
+			continue
+		}
 		row.Stream = fmt.Sprintf("%d", lookup[*row.PostID])
-		row.DeltaType = "PostHistory"
+		row.DeltaType = PostHistoryType
 		row.DeltaID = row.GetID()
 		bulk = append(bulk, row)
 		if len(bulk) >= n {
