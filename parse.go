@@ -52,7 +52,11 @@ func (w *Worker) parseDomain(domain string) error {
 			}
 			continue
 		}
-		row.Stream = fmt.Sprintf("%d", lookup[*row.PostID])
+		streamID, ok := lookup[*row.PostID]
+		if !ok { // not found, but be a question
+			streamID = *row.PostID
+		}
+		row.Stream = fmt.Sprintf("%d", streamID)
 		row.DeltaType = PostHistoryType
 		row.DeltaID = row.GetID()
 		bulk = append(bulk, row)
@@ -92,9 +96,6 @@ func (w *Worker) getStreamLookup(domain string) (map[int]int, error) {
 			fmt.Println("error parsing row:", row.err)
 			continue
 		}
-		if row.PostTypeID == "1" {
-			lookup[*row.ID] = *row.ID
-		}
 		if row.PostTypeID == "2" {
 			lookup[*row.ID] = *row.ParentID
 		}
@@ -133,4 +134,3 @@ func (ds *dySlice) insert(i int, v int) {
 	ds.s[i] = v
 
 }
-
