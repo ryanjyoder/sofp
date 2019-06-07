@@ -1,6 +1,7 @@
 package sofp
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"log"
@@ -8,20 +9,17 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/dgraph-io/badger"
 	"github.com/ryanjyoder/couchdb"
 )
 
 func (w *Worker) parseDomain(domain string) error {
 	log.Println("Starting to parse:", domain)
 
-	lookup, err := w.getStreamLookup(domain)
+	err := w.getStreamLookup(domain)
 	if err != nil {
 		return err
 	}
-	if len(lookup) < 1 {
-		return fmt.Errorf("error getting postiID lookup")
-	}
-	log.Println("Loaded stream lookup table:", len(lookup), err)
 
 	db, err := w.prepareDB(domain)
 	if err != nil {
@@ -52,8 +50,9 @@ func (w *Worker) parseDomain(domain string) error {
 			}
 			continue
 		}
-		streamID, ok := lookup[*row.PostID]
-		if !ok { // not found, but be a question
+		streamIDBytes, err := w.getKeyValue(intToBytes(*row.PostID))
+		streamID := bytesToInt(streamIDBytes)
+		if streamID == 0 || err != nil { // not found, but be a question
 			streamID = *row.PostID
 		}
 		row.Stream = fmt.Sprintf("%d", streamID)
@@ -79,28 +78,41 @@ func (w *Worker) parseDomain(domain string) error {
 
 }
 
-func (w *Worker) getStreamLookup(domain string) (map[int]int, error) {
+func (w *Worker) getStreamLookup(domain string) error {
+	log.Println("Preparing lookup for:", domain)
+	status, _ := w.getKeyValue([]byte(domain + ":lookup-status"))
+	lookupIsBuilt := string(status) == "built"
+
+	if lookupIsBuilt {
+		log.Println("lookup alreayd built. Saving some time.")
+		return nil
+	}
+
 	stdout, err := w.getXmlReader(domain, "Posts")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer stdout.Close()
 	psr, err := NewParser(stdout)
 	if err != nil {
-		return map[int]int{}, err
+		return err
 	}
 
-	lookup := map[int]int{}
 	for row := psr.Next(); row != nil; row = psr.Next() {
 		if row.err != nil {
 			fmt.Println("error parsing row:", row.err)
 			continue
 		}
 		if row.PostTypeID == "2" {
-			lookup[*row.ID] = *row.ParentID
+			err := w.setKeyValue(intToBytes(*row.ID), intToBytes(*row.ParentID))
+			if err != nil {
+				return err
+			}
 		}
 	}
-	return lookup, nil
+	log.Println("finished building lookup")
+	w.setKeyValue([]byte(domain+":lookup-status"), []byte("built"))
+	return nil
 }
 
 func (w *Worker) getXmlReader(domain string, deltaType string) (io.ReadCloser, error) {
@@ -116,21 +128,41 @@ func (w *Worker) getXmlReader(domain string, deltaType string) (io.ReadCloser, e
 	if err != nil {
 		return nil, err
 	}
-
-	return stdout, cmd.Start()
+	err = cmd.Start()
+	go func() {
+		cmd.Wait()
+	}()
+	return stdout, err
 }
 
-type dySlice struct {
-	s []int
+func (w *Worker) getKeyValue(key []byte) ([]byte, error) {
+	var val []byte
+	err := w.badger.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(key)
+		if err != nil {
+			return err
+		}
+
+		val, err = item.Value()
+		return err
+	})
+
+	return val, err
+}
+func (w *Worker) setKeyValue(key, value []byte) error {
+	return w.badger.Update(func(txn *badger.Txn) error {
+		err := txn.Set(key, value)
+		return err
+	})
 }
 
-func (ds *dySlice) insert(i int, v int) {
-	if i >= len(ds.s) {
-		newSize := int(1.1*float64(i) + 3)
-		newSlice := make([]int, newSize)
-		copy(newSlice, ds.s)
-		ds.s = newSlice
-	}
-	ds.s[i] = v
+func intToBytes(n int) []byte {
+	buf := make([]byte, binary.MaxVarintLen64)
+	binary.PutVarint(buf, int64(n))
+	return buf
+}
 
+func bytesToInt(b []byte) int {
+	x, _ := binary.Varint(b)
+	return int(x)
 }

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dgraph-io/badger"
 	"github.com/ryanjyoder/couchdb"
 	"golang.org/x/sync/semaphore"
 )
@@ -20,6 +21,7 @@ type Worker struct {
 	downloadSemephore *semaphore.Weighted
 	parseSemephore    *semaphore.Weighted
 	couchClient       couchdb.ClientService
+	badger            *badger.DB
 }
 
 type WorkerConfigs struct {
@@ -47,15 +49,28 @@ func NewWorker(configs WorkerConfigs) (*Worker, error) {
 		return nil, err
 	}
 
+	// Open the Badger database located in the /tmp/badger directory.
+	// It will be created if it doesn't exist.
+	opts := badger.DefaultOptions
+	opts.Dir = filepath.Join(workingDir, "badger")
+	opts.ValueDir = opts.Dir
+
+	db, err := badger.Open(opts)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Worker{
 		workingDir:        workingDir,
 		downloadSemephore: semaphore.NewWeighted(configs.SimultaneousDownloads),
 		parseSemephore:    semaphore.NewWeighted(configs.SimultaneousParsers),
 		couchClient:       client,
+		badger:            db,
 	}, nil
 }
 
 func (w *Worker) Run() error {
+	defer w.badger.Close()
 	for {
 		err := w.singleRun()
 		if err != nil {
