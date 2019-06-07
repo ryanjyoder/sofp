@@ -50,7 +50,7 @@ func (w *Worker) parseDomain(domain string) error {
 			}
 			continue
 		}
-		streamIDBytes, err := w.getKeyValue(intToBytes(*row.PostID))
+		streamIDBytes, err := w.getKeyValue([]byte(fmt.Sprintf("%s:%d", domain, *row.PostID)))
 		streamID := bytesToInt(streamIDBytes)
 		if streamID == 0 || err != nil { // not found, but be a question
 			streamID = *row.PostID
@@ -104,7 +104,7 @@ func (w *Worker) getStreamLookup(domain string) error {
 			continue
 		}
 		if row.PostTypeID == "2" {
-			err := w.setKeyValue(intToBytes(*row.ID), intToBytes(*row.ParentID))
+			err := w.setKeyValue([]byte(fmt.Sprintf("%s:%d", domain, *row.ID)), intToBytes(*row.ParentID))
 			if err != nil {
 				return err
 			}
