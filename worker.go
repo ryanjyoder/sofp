@@ -54,6 +54,8 @@ func NewWorker(configs WorkerConfigs) (*Worker, error) {
 	opts := badger.DefaultOptions
 	opts.Dir = filepath.Join(workingDir, "badger")
 	opts.ValueDir = opts.Dir
+	opts.MaxTableSize = 1 << 20
+	opts.NumMemtables = 4
 
 	db, err := badger.Open(opts)
 	if err != nil {
