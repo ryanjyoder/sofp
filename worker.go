@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/options"
 	"github.com/ryanjyoder/couchdb"
 	"golang.org/x/sync/semaphore"
 )
@@ -55,7 +56,9 @@ func NewWorker(configs WorkerConfigs) (*Worker, error) {
 	opts.Dir = filepath.Join(workingDir, "badger")
 	opts.ValueDir = opts.Dir
 	opts.MaxTableSize = 1 << 20
-	opts.NumMemtables = 4
+	opts.NumMemtables = 1
+	opts.NumCompactors = 1
+	opts.TableLoadingMode = options.MemoryMap
 
 	db, err := badger.Open(opts)
 	if err != nil {
