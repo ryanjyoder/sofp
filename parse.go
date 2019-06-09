@@ -60,7 +60,7 @@ func (w *Worker) exportCouchStreams(db couchdb.DatabaseService, domain string) e
 		return nil
 	}
 	exportDir := filepath.Join(w.workingDir, "streams", domain+".partial")
-	os.MkdirAll(exportDir, 755)
+	os.MkdirAll(exportDir, 0755)
 	err = os.RemoveAll(exportDir)
 	if err != nil {
 		return err

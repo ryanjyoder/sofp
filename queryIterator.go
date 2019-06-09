@@ -14,14 +14,6 @@ type QueryIterator struct {
 func NewQueryIterator(db couchdb.DatabaseService, designDoc string, viewName string) (*QueryIterator, error) {
 	pageSize := 500
 	skip := 0
-	view, err := db.View(designDoc).Get(viewName, couchdb.QueryParameters{
-		Limit:  intRef(pageSize),
-		Skip:   intRef(skip),
-		Reduce: boolRef(false),
-	})
-	if cErr, ok := err.(*couchdb.Error); err != nil && (!ok || cErr.Type != "timeout") {
-		return nil, err
-	}
 
 	rowChan := make(chan *couchdb.Row)
 	errChan := make(chan error)
@@ -30,6 +22,11 @@ func NewQueryIterator(db couchdb.DatabaseService, designDoc string, viewName str
 		defer close(rowChan)
 		defer close(errChan)
 		for {
+			view, err := db.View(designDoc).Get(viewName, couchdb.QueryParameters{
+				Limit:  intRef(pageSize),
+				Skip:   intRef(skip),
+				Reduce: boolRef(false),
+			})
 			if cErr, ok := err.(*couchdb.Error); ok && cErr.Type == "timeout" {
 				continue
 			} else if err != nil {
@@ -45,11 +42,6 @@ func NewQueryIterator(db couchdb.DatabaseService, designDoc string, viewName str
 				errChan <- nil
 			}
 			skip += pageSize
-			view, err = db.View(designDoc).Get(viewName, couchdb.QueryParameters{
-				Limit:  intRef(pageSize),
-				Skip:   intRef(skip),
-				Reduce: boolRef(false),
-			})
 		}
 
 	}()
