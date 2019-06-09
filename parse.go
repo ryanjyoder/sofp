@@ -30,7 +30,9 @@ func (w *Worker) parseDomain(domain string) error {
 	if err := os.MkdirAll(partialDir, 0755); err != nil {
 		return err
 	}
-	err = writeDeltas(partialDir, deltaChan)
+
+	defer w.fdPool.CloseAll()
+	err = writeDeltas(partialDir, deltaChan, w.fdPool)
 	if err != nil {
 		return err
 	}
@@ -40,12 +42,7 @@ func (w *Worker) parseDomain(domain string) error {
 	return err
 }
 
-func writeDeltas(exportDir string, deltaChan chan *Row) error {
-	fdpool, err := NewFDPool(100)
-	if err != nil {
-		return err
-	}
-	defer fdpool.CloseAll()
+func writeDeltas(exportDir string, deltaChan chan *Row, fdpool *FDPool) error {
 
 	for delta := range deltaChan {
 		subDir := ("000" + delta.StreamID)[len(delta.StreamID):]

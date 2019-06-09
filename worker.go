@@ -17,12 +17,14 @@ type Worker struct {
 	workingDir        string
 	downloadSemephore *semaphore.Weighted
 	parseSemephore    *semaphore.Weighted
+	fdPool            *FDPool
 }
 
 type WorkerConfigs struct {
 	StorageDirectory      string
 	SimultaneousDownloads int64
 	SimultaneousParsers   int64
+	FDPoolSize            int
 }
 
 func NewWorker(configs WorkerConfigs) (*Worker, error) {
@@ -31,10 +33,16 @@ func NewWorker(configs WorkerConfigs) (*Worker, error) {
 		return nil, err
 	}
 
+	fdpool, err := NewFDPool(configs.FDPoolSize)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Worker{
 		workingDir:        workingDir,
 		downloadSemephore: semaphore.NewWeighted(configs.SimultaneousDownloads),
 		parseSemephore:    semaphore.NewWeighted(configs.SimultaneousParsers),
+		fdPool:            fdpool,
 	}, nil
 }
 
@@ -80,6 +88,7 @@ func GetDefaultConfigs() (WorkerConfigs, error) {
 		return cfg, fmt.Errorf("storage directory not provided")
 	}
 
+	// SIMULTANEOUS_DOWNLOAD //
 	simDownloadStr, _ := os.LookupEnv("SIMULTANEOUS_DOWNLOAD")
 	if simDownloadStr == "" {
 		simDownloadStr = "10"
@@ -90,6 +99,7 @@ func GetDefaultConfigs() (WorkerConfigs, error) {
 	}
 	cfg.SimultaneousDownloads = int64(simDownload)
 
+	// SIMULTANEOUS_PARSE //
 	simParseStr, _ := os.LookupEnv("SIMULTANEOUS_PARSE")
 	if simParseStr == "" {
 		simParseStr = "1"
@@ -99,6 +109,19 @@ func GetDefaultConfigs() (WorkerConfigs, error) {
 		return cfg, err
 	}
 	cfg.SimultaneousParsers = int64(simParse)
+
+	// FD_POOL_SIZE //
+	fdPoolSizeStr, _ := os.LookupEnv("FD_POOL_SIZE")
+	if fdPoolSizeStr == "" {
+		fdPoolSizeStr = "100"
+	}
+	fdPoolSize, err := strconv.Atoi(fdPoolSizeStr)
+	if err != nil {
+		return cfg, err
+	}
+	cfg.FDPoolSize = fdPoolSize
+
+	// Store directory //
 	cfg.StorageDirectory = os.Args[1]
 
 	return cfg, nil
