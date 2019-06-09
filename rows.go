@@ -56,18 +56,9 @@ type Row struct {
 	VoteTypeId   int      `xml:"VoteTypeId,attr" json:"VoteTypeId,omitempty"`
 	BountyAmount *float64 `xml:"BountyAmount,attr" json:"BountyAmount,omitempty"`
 
-	DeltaID   string `json:"_id"`
-	Stream    string `json:"StreamID"`
 	DeltaType string `json:"DeltaType"`
+	StreamID  string
 	err       error
-}
-
-func (r *Row) GetID() string {
-	return fmt.Sprintf("%s-%d", r.DeltaType, getInt(r.ID))
-}
-
-func (r *Row) GetRev() string {
-	return ""
 }
 
 type Question struct {
@@ -143,7 +134,7 @@ func (row *Row) GetQuestion() (*Question, error) {
 		Answers:               []*Answer{},
 	}
 
-	if row.DeltaType != PostsType || row.PostTypeID != "1" {
+	if row.PostTypeID != "1" {
 		return q, fmt.Errorf("row not of type Question")
 	}
 

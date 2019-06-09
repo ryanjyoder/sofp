@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 
 ## Get ENVs ###
-export COUCHDB_HOST="$(snapctl get couchdb.host)"
-export COUCHDB_USER="$(snapctl get couchdb.user)"
-export COUCHDB_PASS="$(snapctl get couchdb.pass)"
 export SIMULTANEOUS_DOWNLOAD="$(snapctl get simultaneous-download)"
 export SIMULTANEOUS_PARSE="$(snapctl get simultaneous-parse)"
 
-
+ 
 if [ -z "$COUCHDB_HOST" ]
 then
     exit 1
