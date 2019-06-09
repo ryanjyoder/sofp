@@ -21,7 +21,7 @@ func (w *Worker) parseDomain(domain string) error {
 		return err
 	}
 
-	partialDir := filepath.Join(w.workingDir, "streams", domain+"partial")
+	partialDir := filepath.Join(w.workingDir, "streams", domain+".partial")
 	completedDir := filepath.Join(w.workingDir, "streams", domain)
 	os.MkdirAll(partialDir, 0755)
 	if err := os.RemoveAll(partialDir); err != nil {
