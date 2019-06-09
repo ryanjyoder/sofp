@@ -10,7 +10,6 @@ type FDPool struct {
 	fds      []*os.File
 	fdLookup map[string]int
 	nextPos  int
-	curSize  int
 }
 
 func NewFDPool(poolSize int) (*FDPool, error) {
@@ -32,14 +31,14 @@ func (p *FDPool) GetFD(path string) (*os.File, error) {
 	if fdIndex, ok := p.fdLookup[path]; ok {
 		return p.fds[fdIndex], nil
 	}
-	// if we're at capcity close the fd in the next position
-	if p.curSize >= len(p.fds) { // should never be greater than
+
+	if p.fds[p.nextPos] != nil {
 		p.fds[p.nextPos].Close()
 		p.fds[p.nextPos] = nil
-		p.curSize--
 		for key, i := range p.fdLookup {
 			if i == p.nextPos {
 				delete(p.fdLookup, key)
+				break
 			}
 		}
 	}
@@ -53,9 +52,10 @@ func (p *FDPool) GetFD(path string) (*os.File, error) {
 }
 
 func (p *FDPool) CloseAll() error {
-	for _, i := range p.fdLookup {
-		p.fds[i].Close()
-		p.fds[i] = nil
+	for i := range p.fds {
+		if p.fds[i] != nil {
+			p.fds[i].Close()
+		}
 	}
 	p.fds = make([]*os.File, len(p.fds))
 	p.fdLookup = map[string]int{}
