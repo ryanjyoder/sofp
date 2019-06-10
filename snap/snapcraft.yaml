@@ -12,6 +12,10 @@ apps:
     command: bin/wrapper
     daemon: simple
     plugs: [network, removable-media]
+  rsync:
+    command: usr/bin/rsync  --config=$SNAP/rsync.conf --daemon --no-detach
+    daemon: simple
+    plugs: [network]
   
 
 parts:
@@ -21,6 +25,7 @@ parts:
     go-packages: ["github.com/ryanjyoder/sofp/cmd/downloader"]
     stage-packages:
       - p7zip-full
+      - rsync
     build-packages:
       - git
     override-build: |
@@ -32,6 +37,7 @@ parts:
       cp downloader $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/wrapper $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/7z $SNAPCRAFT_PART_INSTALL/bin/
+      cp rsync.conf $SNAPCRAFT_PART_INSTALL
       echo _______________________ Building finsihed ___________________________
   
 
