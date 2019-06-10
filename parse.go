@@ -31,15 +31,15 @@ func (w *Worker) parseDomain(domain string) error {
 		return err
 	}
 
-	defer w.fdPool.CloseAll()
 	err = writeDeltas(partialDir, deltaChan, w.fdPool)
 	if err != nil {
 		return err
 	}
+	if err := w.fdPool.CloseAll(); err != nil {
+		return err
+	}
 
-	err = os.Rename(partialDir, completedDir)
-
-	return err
+	return os.Rename(partialDir, completedDir)
 }
 
 func writeDeltas(exportDir string, deltaChan chan *Row, fdpool *FDPool) error {
