@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 )
 
 func (w *Worker) parseDomain(domain string) error {
@@ -38,6 +39,7 @@ func (w *Worker) parseDomain(domain string) error {
 	if err := w.fdPool.CloseAll(); err != nil {
 		return err
 	}
+	debug.FreeOSMemory()
 
 	return os.Rename(partialDir, completedDir)
 }
@@ -123,6 +125,7 @@ func (w *Worker) getDeltaChan(domain string) (chan *Row, error) {
 				deltaChan <- d
 			}
 		}
+		lookup = []uint32{}
 	}()
 
 	return deltaChan, nil
