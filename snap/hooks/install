@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+cp $SNAP/rsync.conf $SNAP_DATA

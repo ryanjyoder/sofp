@@ -13,7 +13,7 @@ apps:
     daemon: simple
     plugs: [network, removable-media]
   rsync:
-    command: usr/bin/rsync  --config=$SNAP/rsync.conf --daemon --no-detach
+    command: usr/bin/rsync  --config=$SNAP_DATA/rsync.conf --daemon --no-detach
     daemon: simple
     plugs: [network]
   
