@@ -15,7 +15,7 @@ apps:
   rsync:
     command: usr/bin/rsync  --config=$SNAP_DATA/rsync.conf --daemon --no-detach
     daemon: simple
-    plugs: [network]
+    plugs: [network, network-bind]
   
 
 parts:
