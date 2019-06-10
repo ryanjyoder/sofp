@@ -143,13 +143,13 @@ func (w *Worker) getXmlReader(domain string, deltaType string) (*RowsParser, err
 		return nil, err
 	}
 	err = cmd.Start()
+	if err != nil {
+		return nil, err
+	}
 	go func() {
 		cmd.Wait()
 	}()
 
-	psr, err := NewParser(stdout)
-	if err != nil {
-		return nil, err
-	}
-	return psr, err
+	return NewParser(stdout)
+
 }
