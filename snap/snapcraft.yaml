@@ -13,7 +13,7 @@ apps:
     daemon: simple
     plugs: [network, removable-media]
   rsync:
-    command: usr/bin/rsync  --config=$SNAP_DATA/rsync.conf --daemon --no-detach
+    command: bin/rsync  --config=$SNAP_DATA/rsync.conf --daemon --no-detach
     daemon: simple
     plugs: [network, network-bind]
   
@@ -25,7 +25,6 @@ parts:
     go-packages: ["github.com/ryanjyoder/sofp/cmd/downloader"]
     stage-packages:
       - p7zip-full
-      - rsync
     build-packages:
       - git
     override-build: |
@@ -38,7 +37,15 @@ parts:
       cp bin/wrapper $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/7z $SNAPCRAFT_PART_INSTALL/bin/
       cp rsync.conf $SNAPCRAFT_PART_INSTALL
+      cp clientserver.c.patch $SNAPCRAFT_STAGE
       echo _______________________ Building finsihed ___________________________
-  
 
+  
+  rsync:
+    source: https://download.samba.org/pub/rsync/src/rsync-3.1.3.tar.gz
+    plugin: autotools
+    override-build: |
+      patch clientserver.c < $SNAPCRAFT_STAGE/clientserver.c.patch
+      snapcraftctl build
+    after: [sofp]
       
