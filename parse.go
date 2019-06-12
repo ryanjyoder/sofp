@@ -105,6 +105,9 @@ func (w *Worker) getDeltaChan(domain string) (chan *Row, error) {
 	deltaChan := make(chan *Row)
 	go func() {
 		defer close(deltaChan)
+		defer postsPsr.Close()
+		defer historyPsr.Close()
+		defer commentsPsr.Close()
 		lookup := make([]uint32, 100*1000*1000)
 		for post := postsPsr.Next(); post != nil; post = postsPsr.Next() {
 			if post.PostTypeID == "2" {

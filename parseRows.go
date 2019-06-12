@@ -57,3 +57,10 @@ func (psr *RowsParser) Next() *Row {
 func (psr *RowsParser) Peek() *Row {
 	return psr.peek
 }
+
+func (psr *RowsParser) Close() error {
+	for _ = range psr.postChan {
+	}
+	psr.peek = nil
+	return nil
+}
