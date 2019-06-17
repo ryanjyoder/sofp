@@ -193,8 +193,10 @@ func (q *Question) AppendRow(r *Row) error {
 		}
 		q.AppendAnswer(a)
 		return nil
+	case PostHistoryType:
+		q.AppendHistory(r)
 	}
-	return fmt.Errorf("row unsupported time at this time")
+	return fmt.Errorf("row unsupported time at this time: %s", r.DeltaType)
 }
 
 func (q *Question) AppendAnswer(a *Answer) error {
@@ -214,6 +216,76 @@ func (q *Question) AppendComment(c Comment) error {
 		}
 	}
 	return fmt.Errorf("Comment does not below here")
+}
+
+func (q *Question) AppendHistory(r *Row) error {
+	if r.DeltaType != PostHistoryType {
+		return fmt.Errorf("row not history type:", r.DeltaType)
+	}
+	if q.ID == 0 && r.PostID != nil {
+		q.ID = *r.PostID
+	}
+
+	if *r.PostID != q.ID {
+		// answer
+		return nil
+	}
+
+	switch r.PostHistoryTypeID {
+	// Title //
+	case "1": //= Initial Title - initial title (questions only)
+		fallthrough
+	case "4": //Edit Title - modified title (questions only)
+		fallthrough
+	case "7": //Rollback Title - reverted title (questions only)
+		q.Title = r.Text
+
+		// Body //
+	case "2": // Initial Body - initial post raw body text
+		fallthrough
+	case "5": //Edit Body - modified post body (raw markdown)
+		fallthrough
+	case "8": //Rollback Body - reverted body (raw markdown)
+		q.Body = template.HTML(r.Text)
+
+		// Tags //
+	case "3": //Initial Tags - initial list of tags (questions only)
+		fallthrough
+	case "6": //Edit Tags - modified list of tags (questions only)
+		fallthrough
+	case "9": //Rollback Tags - reverted list of tags (questions only)
+		q.Tags = r.Text
+
+		//
+	case "10": //Post Closed - post voted to be closed
+	case "11": //Post Reopened - post voted to be reopened
+	case "12": //Post Deleted - post voted to be removed
+	case "13": //Post Undeleted - post voted to be restored
+	case "14": //Post Locked - post locked by moderator
+	case "15": //Post Unlocked - post unlocked by moderator
+	case "16": //Community Owned - post now community owned
+	case "17": //Post Migrated - post migrated - now replaced by 35/36 (away/here)
+	case "18": //Question Merged - question merged with deleted question
+	case "19": //Question Protected - question was protected by a moderator.
+	case "20": //Question Unprotected - question was unprotected by a moderator.
+	case "21": //Post Disassociated - OwnerUserId removed from post by admin
+	case "22": //Question Unmerged - answers/votes restored to previously merged question
+	case "24": //Suggested Edit Applied
+	case "25": //Post Tweeted
+	case "31": //Comment discussion moved to chat
+	case "33": //Post notice added - comment contains foreign key to PostNotices
+	case "34": //Post notice removed - comment contains foreign key to PostNotices
+	case "35": //Post migrated away - replaces id 17
+	case "36": //Post migrated here - replaces id 17
+	case "37": //Post merge source
+	case "38": //Post merge destination
+	case "50": //Bumped by Community User
+	case "52": //Question became hot network question
+	case "53": //Question removed from hot network questions by a moderator
+	default:
+		return fmt.Errorf("PostHistoryTypeID not recognized: %s", r.PostHistoryTypeID)
+	}
+
 }
 
 func getInt(i *int) int {
