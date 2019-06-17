@@ -195,6 +195,7 @@ func (q *Question) AppendRow(r *Row) error {
 		return nil
 	case PostHistoryType:
 		q.AppendHistory(r)
+		return nil
 	}
 	return fmt.Errorf("row unsupported time at this time: %s", r.DeltaType)
 }
