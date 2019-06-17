@@ -285,7 +285,7 @@ func (q *Question) AppendHistory(r *Row) error {
 	default:
 		return fmt.Errorf("PostHistoryTypeID not recognized: %s", r.PostHistoryTypeID)
 	}
-
+	return nil
 }
 
 func getInt(i *int) int {
