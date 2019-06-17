@@ -229,7 +229,7 @@ func (q *Question) AppendHistory(r *Row) error {
 
 	if r.PostID != nil && *r.PostID != q.ID {
 		// answer
-		return nil
+		return q.findAnswer(*r.PostID).AppendHistory(r)
 	}
 
 	switch r.PostHistoryTypeID {
@@ -285,6 +285,42 @@ func (q *Question) AppendHistory(r *Row) error {
 	case "53": //Question removed from hot network questions by a moderator
 	default:
 		return fmt.Errorf("PostHistoryTypeID not recognized: %s", r.PostHistoryTypeID)
+	}
+	return nil
+}
+
+func (q *Question) findAnswer(postID int) *Answer {
+	for i := range q.Answers {
+		if q.Answers[i].ID == postID {
+			return q.Answers[i]
+		}
+	}
+
+	// if not found create it and append to list of answers
+	a := &Answer{
+		ID: postID,
+	}
+	q.Answers = append(q.Answers, a)
+	return a
+
+}
+
+func (q *Answer) AppendHistory(r *Row) error {
+	if r.DeltaType != PostHistoryType {
+		return fmt.Errorf("row not history type:", r.DeltaType)
+	}
+
+	switch r.PostHistoryTypeID {
+	// Body //
+	case "2": // Initial Body - initial post raw body text
+		fallthrough
+	case "5": //Edit Body - modified post body (raw markdown)
+		fallthrough
+	case "8": //Rollback Body - reverted body (raw markdown)
+		q.Body = template.HTML(r.Text)
+	default:
+		return fmt.Errorf("PostHistoryTypeID not recognized or valid for answer: %s", r.PostHistoryTypeID)
+
 	}
 	return nil
 }
