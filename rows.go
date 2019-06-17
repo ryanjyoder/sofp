@@ -227,7 +227,7 @@ func (q *Question) AppendHistory(r *Row) error {
 		q.ID = *r.PostID
 	}
 
-	if *r.PostID != q.ID {
+	if r.PostID != nil && *r.PostID != q.ID {
 		// answer
 		return nil
 	}
