@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime/debug"
+	"strings"
 )
 
 func (w *Worker) parseDomain(domain string) error {
@@ -32,28 +33,51 @@ func (w *Worker) parseDomain(domain string) error {
 		return err
 	}
 
-	err = writeDeltas(partialDir, deltaChan, w.fdPool)
+	err = writeDeltasSingleFile(partialDir, deltaChan)
 	if err != nil {
 		return err
 	}
-	if err := w.fdPool.CloseAll(); err != nil {
-		return err
-	}
+
 	debug.FreeOSMemory()
 
 	return os.Rename(partialDir, completedDir)
+
 }
 
-func writeDeltas(exportDir string, deltaChan chan *Row, fdpool *FDPool) error {
+func writeDeltasSingleFile(exportDir string, deltaChan chan *Row) error {
+	outputFile := filepath.Join(exportDir, "unified-stream")
+	fd, err := os.OpenFile(outputFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
 
 	for delta := range deltaChan {
-		subDir := ("000" + delta.StreamID)[len(delta.StreamID):]
+		jsonBytes, err := json.Marshal(delta)
+		if err != nil {
+			return err
+		}
+		_, err = fd.Write(append(jsonBytes, '\n'))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func writeDeltasMultiFile(exportDir string, deltaChan chan *Row, fdpool *FDPool) error {
+
+	for delta := range deltaChan {
+		// remove everything before the first slash stackoverflow.com/1234 -> 1234
+		streamID := strings.Join(strings.Split(delta.StreamID, "/")[1:], "/")
+		subDir := ("000" + streamID)[len(streamID):]
 		outputDir := filepath.Join(exportDir, subDir)
 		err := os.MkdirAll(outputDir, 0755)
 		if err != nil {
 			return err
 		}
-		outputFilename := filepath.Join(outputDir, delta.StreamID)
+		outputFilename := filepath.Join(outputDir, streamID)
 		output, err := fdpool.GetFD(outputFilename)
 		if err != nil {
 			return err
@@ -88,44 +112,35 @@ func (w *Worker) domainIsExported(domain string) (bool, error) {
 
 func (w *Worker) getDeltaChan(domain string) (chan *Row, error) {
 
-	postsPsr, err := w.getXmlReader(domain, PostsType)
-	if err != nil {
-		return nil, err
-	}
-	historyPsr, err := w.getXmlReader(domain, PostHistoryType)
-	if err != nil {
-		return nil, err
-	}
-
-	commentsPsr, err := w.getXmlReader(domain, CommentsType)
-	if err != nil {
-		return nil, err
-	}
-
 	deltaChan := make(chan *Row)
 	go func() {
+		allParsers, err := w.getAllParsers(domain)
 		defer close(deltaChan)
-		defer postsPsr.Close()
-		defer historyPsr.Close()
-		defer commentsPsr.Close()
+		defer func() {
+			for _, p := range allParsers {
+				p.Close()
+			}
+		}()
+		if err != nil {
+			return
+		}
+
 		lookup := make([]uint32, 100*1000*1000)
-		for post := postsPsr.Next(); post != nil; post = postsPsr.Next() {
+		for allParsers[PostsType].Peek() != nil {
+			post := allParsers[PostsType].Next()
 			if post.PostTypeID == "2" {
 				lookup[*post.ID] = uint32(*post.ParentID)
 			} else {
 				lookup[*post.ID] = uint32(*post.ID)
 			}
-			for historyPsr.Peek() != nil && *historyPsr.Peek().PostID <= *post.ID {
-				d := historyPsr.Next()
-				d.DeltaType = PostHistoryType
-				d.StreamID = fmt.Sprint(lookup[*d.PostID])
-				deltaChan <- d
-			}
-			for commentsPsr.Peek() != nil && *commentsPsr.Peek().PostID <= *post.ID {
-				d := commentsPsr.Next()
-				d.DeltaType = CommentsType
-				d.StreamID = fmt.Sprint(lookup[*d.PostID])
-				deltaChan <- d
+			for _, deltaType := range DeltaTypeOrder {
+				psr := allParsers[deltaType]
+				for psr.Peek() != nil && *psr.Peek().PostID <= *post.ID {
+					d := psr.Next()
+					d.DeltaType = deltaType
+					d.StreamID = fmt.Sprintf("%s/%d", domain, lookup[*d.PostID])
+					deltaChan <- d
+				}
 			}
 		}
 		lookup = []uint32{}
@@ -133,6 +148,42 @@ func (w *Worker) getDeltaChan(domain string) (chan *Row, error) {
 
 	return deltaChan, nil
 
+}
+
+func (w *Worker) getAllParsers(domain string) (map[string]*RowsParser, error) {
+	allParsers := map[string]*RowsParser{}
+
+	postsPsr, err := w.getXmlReader(domain, PostsType)
+	if err != nil {
+		return allParsers, err
+	}
+	allParsers[PostsType] = postsPsr
+
+	historyPsr, err := w.getXmlReader(domain, PostHistoryType)
+	if err != nil {
+		return allParsers, err
+	}
+	allParsers[PostHistoryType] = historyPsr
+
+	commentsPsr, err := w.getXmlReader(domain, CommentsType)
+	if err != nil {
+		return allParsers, err
+	}
+	allParsers[CommentsType] = commentsPsr
+
+	linksPsr, err := w.getXmlReader(domain, PostLinksType)
+	if err != nil {
+		return allParsers, err
+	}
+	allParsers[PostLinksType] = linksPsr
+
+	votesPsr, err := w.getXmlReader(domain, VotesType)
+	if err != nil {
+		return allParsers, err
+	}
+	allParsers[VotesType] = votesPsr
+
+	return allParsers, nil
 }
 
 func (w *Worker) getXmlReader(domain string, deltaType string) (*RowsParser, error) {
