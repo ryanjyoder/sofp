@@ -3,6 +3,8 @@ package sofp
 import (
 	"fmt"
 	"html/template"
+
+	"github.com/golang-commonmark/markdown"
 )
 
 const (
@@ -11,6 +13,10 @@ const (
 	CommentsType    = "Comments"
 	PostLinksType   = "PostLinks"
 	VotesType       = "Votes"
+)
+
+var (
+	DeltaTypeOrder = []string{PostHistoryType, CommentsType, PostLinksType, VotesType}
 )
 
 type Row struct {
@@ -247,7 +253,7 @@ func (q *Question) AppendHistory(r *Row) error {
 	case "5": //Edit Body - modified post body (raw markdown)
 		fallthrough
 	case "8": //Rollback Body - reverted body (raw markdown)
-		q.Body = template.HTML(r.Text)
+		q.Body = template.HTML(markdown.New().RenderToString([]byte(r.Text)))
 
 		// Tags //
 	case "3": //Initial Tags - initial list of tags (questions only)
@@ -317,7 +323,7 @@ func (q *Answer) AppendHistory(r *Row) error {
 	case "5": //Edit Body - modified post body (raw markdown)
 		fallthrough
 	case "8": //Rollback Body - reverted body (raw markdown)
-		q.Body = template.HTML(r.Text)
+		q.Body = template.HTML(markdown.New().RenderToString([]byte(r.Text)))
 	default:
 		return fmt.Errorf("PostHistoryTypeID not recognized or valid for answer: %s", r.PostHistoryTypeID)
 
