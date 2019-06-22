@@ -15,6 +15,10 @@ const (
 	VotesType       = "Votes"
 )
 
+var (
+	DeltaTypeOrder = []string{PostHistoryType, CommentsType, PostLinksType, VotesType}
+)
+
 type Row struct {
 	// Post attributes
 	ID                    *int   `xml:"Id,attr" json:"Id"`
