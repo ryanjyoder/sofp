@@ -15,9 +15,12 @@ require (
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0
+	github.com/opennota/wd v0.0.0-20180911144301-b446539ab1e7 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
+	github.com/russross/blackfriday v2.0.0+incompatible // indirect
 	github.com/ryanjyoder/couchdb v2.0.0+incompatible
 	github.com/segmentio/pointer v0.0.0-20160608003038-39719d2ea756 // indirect
+	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/zemirco/uid v0.0.0-20160129141151-3763f3c45832 // indirect
 	golang.org/x/net v0.0.0-20190603091049-60506f45cf65 // indirect
