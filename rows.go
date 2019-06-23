@@ -19,6 +19,13 @@ var (
 	DeltaTypeOrder = []string{PostHistoryType, CommentsType, PostLinksType, VotesType}
 )
 
+func (r *Row) GetStreamID() string {
+	return r.StreamID
+}
+func (r *Row) GetID() string {
+	return fmt.Sprintf("%s-%s-%d", r.StreamID, r.DeltaType, *r.ID)
+}
+
 type Row struct {
 	// Post attributes
 	ID                    *int   `xml:"Id,attr" json:"Id"`
@@ -202,6 +209,11 @@ func (q *Question) AppendRow(r *Row) error {
 	case PostHistoryType:
 		q.AppendHistory(r)
 		return nil
+	case PostLinksType:
+		return q.AppendLink(r)
+
+	case VotesType:
+		return q.AppendVote(r)
 	}
 	return fmt.Errorf("row unsupported time at this time: %s", r.DeltaType)
 }
@@ -223,6 +235,16 @@ func (q *Question) AppendComment(c Comment) error {
 		}
 	}
 	return fmt.Errorf("Comment does not below here")
+}
+
+func (q *Question) AppendVote(r *Row) error {
+	// ignored currently
+	return nil
+}
+
+func (q *Question) AppendLink(r *Row) error {
+	// ignored currently
+	return nil
 }
 
 func (q *Question) AppendHistory(r *Row) error {
