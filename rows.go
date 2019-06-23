@@ -19,6 +19,10 @@ var (
 	DeltaTypeOrder = []string{PostHistoryType, CommentsType, PostLinksType, VotesType}
 )
 
+func(r *Row)GetStreamID()string{
+	return r.StreamID
+}
+
 type Row struct {
 	// Post attributes
 	ID                    *int   `xml:"Id,attr" json:"Id"`
