@@ -19,8 +19,11 @@ var (
 	DeltaTypeOrder = []string{PostHistoryType, CommentsType, PostLinksType, VotesType}
 )
 
-func(r *Row)GetStreamID()string{
+func (r *Row) GetStreamID() string {
 	return r.StreamID
+}
+func (r *Row) GetID() string {
+	return fmt.Sprintf("%s-%s-%d", r.StreamID, r.DeltaType, *r.ID)
 }
 
 type Row struct {
