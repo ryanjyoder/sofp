@@ -15,7 +15,7 @@ apps:
   api:
     command: bin/api $SNAP_COMMON
     daemon: simple
-    plugs: [network]
+    plugs: [network, network-bind]
 
   
 
