@@ -3,7 +3,6 @@ package sofp
 import (
 	"encoding/xml"
 	"io/ioutil"
-	"net/url"
 	"os"
 )
 
@@ -34,7 +33,7 @@ type Site struct {
 	BadgeIconUrl   string   `xml:"BadgeIconUrl,attr"`   // "https://cdn.sstatic.net/Sites/stellarmeta/img/apple-touch-icon.png"
 }
 
-func getDomains(xmlFilename string) ([]string, error) {
+func getDomainsFromSitesXml(xmlFilename string) ([]Site, error) {
 	xmlFile, err := os.Open(xmlFilename)
 	if err != nil {
 		return nil, err
@@ -48,11 +47,5 @@ func getDomains(xmlFilename string) ([]string, error) {
 
 	var sites SitesXml
 	err = xml.Unmarshal(byteValue, &sites)
-	domains := make([]string, len(sites.Sites))
-	for i := range sites.Sites {
-		fullUrlStr := sites.Sites[i].Url
-		fullUrl, _ := url.Parse(fullUrlStr)
-		domains[i] = fullUrl.Host
-	}
-	return domains, nil
+	return sites.Sites, err
 }

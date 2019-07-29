@@ -8,102 +8,76 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/cavaliercoder/grab"
 )
 
-func (w *Worker) getDownloaded() (chan string, error) {
-
-	err := w.prepareDownloads()
+func (w *Worker) downloadDomain(domain string, version string) error {
+	downloaded, err := w.domainFlagSet(domain+"/"+version, DownloadedFlag)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	if downloaded {
+		return nil
 	}
 
-	domainsChan := make(chan string)
+	w.downloadSemephore.Acquire(context.TODO(), 1)
+	defer w.downloadSemephore.Release(1)
 
-	go func() {
-		defer close(domainsChan)
-		wg := sync.WaitGroup{}
-		domains, _ := getDomains(filepath.Join(w.workingDir, "Sites.xml"))
-		for _, domain := range domains {
-			w.downloadSemephore.Acquire(context.TODO(), 1)
-			wg.Add(1)
-			go func(d string) {
-				defer w.downloadSemephore.Release(1)
-				defer wg.Done()
-				err := w.downloadDomain(d)
-				if err != nil {
-					log.Println("download failed for:", d)
-					return
-				}
-				domainsChan <- d
-			}(domain)
-		}
-		wg.Wait()
-	}()
-
-	return domainsChan, nil
-
-}
-
-func (w *Worker) downloadDomain(domain string) error {
 	filenames := get7zFilenames(domain)
 	for _, filename := range filenames {
-		output := filepath.Join(w.workingDir, "zips", filename)
+		output := filepath.Join(w.workingDir, domain, version, filename)
 		downloadUrl := "https://archive.org/download/stackexchange/" + filename
 		_, err := grab.Get(output, downloadUrl)
 		if err != nil {
 			return err
 		}
 	}
-	return nil
+
+	return w.domainSetFlag(domain+"/"+version, DownloadedFlag, true)
 }
 
-// prepareDownload will clear old zip files if there are new versions
-// and fetch the latest Sites.xml file
-func (w *Worker) prepareDownloads() error {
+func (w *Worker) getAvailableDomains() ([]Site, error) {
 	log.Println("Working Directory:", w.workingDir)
 	err := os.MkdirAll(w.workingDir, 0755)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	newSitesPath := filepath.Join(w.workingDir, "new-Sites.xml")
 	_, err = grab.Get(newSitesPath, "https://archive.org/download/stackexchange/Sites.xml")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	newSitesHash := hashFile(newSitesPath)
 	if newSitesHash == "" {
-		return fmt.Errorf("couldn't get new-Sites.xml hash")
+		return nil, fmt.Errorf("couldn't get new-Sites.xml hash")
 	}
 
 	sitesPath := filepath.Join(w.workingDir, "Sites.xml")
 	oldSiteshash := hashFile(sitesPath)
 
-	zipsDir := filepath.Join(w.workingDir, "zips")
 	if newSitesHash != oldSiteshash {
 		log.Println("New updates available")
-		err := os.RemoveAll(zipsDir)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// if the hash has actually change, opposed to Sites.xml never existing
 		// we're going to wait a few hours just in case the upload is still in progress
 		// we could replace this with an actually check of each file's modification date.
-		// but honest you already waited 3 months, what's 12 morre hours
+		// but honestly you already waited 3 months, what's 12 morre hours
 		if oldSiteshash != "" {
 			log.Println("pausing to make sure the complete upload is finished")
 			time.Sleep(12 * time.Hour)
 		}
 	}
-	os.MkdirAll(zipsDir, 0755)
-	os.Rename(newSitesPath, sitesPath)
 
-	return nil
+	os.Rename(newSitesPath, sitesPath)
+	domains, err := getDomainsFromSitesXml(sitesPath)
+
+	return domains, err
 }
 
 func hashFile(filename string) string {
