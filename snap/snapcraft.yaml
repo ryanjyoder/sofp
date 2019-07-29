@@ -12,10 +12,11 @@ apps:
     command: bin/wrapper
     daemon: simple
     plugs: [network, removable-media]
-  rsync:
-    command: bin/rsync  --config=$SNAP_DATA/rsync.conf --daemon --no-detach
+  api:
+    command: bin/api $SNAP_COMMON
     daemon: simple
-    plugs: [network, network-bind]
+    plugs: [network]
+
   
 
 parts:
@@ -27,25 +28,18 @@ parts:
       - p7zip-full
     build-packages:
       - git
+      - gcc
     override-build: |
       export GO111MODULE=on
-      echo _______________________ Building Binary _______________________________
+      echo _______________________ Building binaries _______________________________
       go build cmd/downloader/downloader.go
+      go build cmd/api/api.go
       echo _______________________ Build finished ________________________________
       mkdir  -p $SNAPCRAFT_PART_INSTALL/bin
       cp downloader $SNAPCRAFT_PART_INSTALL/bin/
+      cp api $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/wrapper $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/7z $SNAPCRAFT_PART_INSTALL/bin/
-      cp rsync.conf $SNAPCRAFT_PART_INSTALL
-      cp clientserver.c.patch $SNAPCRAFT_STAGE
       echo _______________________ Building finsihed ___________________________
 
-  
-  rsync:
-    source: https://download.samba.org/pub/rsync/src/rsync-3.1.3.tar.gz
-    plugin: autotools
-    override-build: |
-      patch clientserver.c < $SNAPCRAFT_STAGE/clientserver.c.patch
-      snapcraftctl build
-    after: [sofp]
       

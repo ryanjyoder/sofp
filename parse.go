@@ -1,6 +1,7 @@
 package sofp
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -8,40 +9,81 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime/debug"
-	"strings"
 )
 
-func (w *Worker) parseDomain(domain string) error {
-	log.Println("Starting to parse:", domain)
-	isExported, err := w.domainIsExported(domain)
+func (w *Worker) parseDomain(domain string, version string) error {
+
+	isExported, err := w.domainFlagSet(domain+"/"+version, ParsedFlag)
 	if isExported || err != nil {
 		return err // err will be nil if already exported
 	}
 
-	deltaChan, err := w.getDeltaChan(domain)
+	w.parseSemephore.Acquire(context.TODO(), 1)
+	defer w.parseSemephore.Release(1)
+	log.Println("Starting to parse:", domain)
+
+	deltaChan, err := w.getDeltaChan(domain, version)
 	if err != nil {
 		return err
 	}
 
-	partialDir := filepath.Join(w.workingDir, "streams", domain+".partial")
-	completedDir := filepath.Join(w.workingDir, "streams", domain)
-	os.MkdirAll(partialDir, 0755)
-	if err := os.RemoveAll(partialDir); err != nil {
-		return err
-	}
-	if err := os.MkdirAll(partialDir, 0755); err != nil {
-		return err
-	}
-
-	err = writeDeltasSingleFile(partialDir, deltaChan)
+	sqlitePath := filepath.Join(w.workingDir, domain, version, FilenameSqlite)
+	err = writeDeltasToSqlite(sqlitePath, deltaChan)
 	if err != nil {
 		return err
 	}
 
-	debug.FreeOSMemory()
+	cmd := exec.Command("gzip", "-k", "-f", sqlitePath)
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
 
-	return os.Rename(partialDir, completedDir)
+	return w.domainSetFlag(domain+"/"+version, ParsedFlag, true)
 
+}
+
+func writeDeltasToSqlite(sqliteFile string, deltaChan chan *Row) error {
+	store, err := NewStreamStore(sqliteFile)
+	if err != nil {
+		return err
+	}
+
+	lastDelta, err := store.LastDelta()
+
+	tx, err := store.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// This indicates whether we've read through the channel to new deltas not in the db
+	// if the last delta is empty then the db is empty and the stream is ready to start inserting
+	streamIsReset := lastDelta == ""
+
+	for delta := range deltaChan {
+		// keep reading from the chan until we see the last delta in the db. Then we'll starting inserting
+		if !streamIsReset {
+			streamIsReset = delta.GetID() == lastDelta
+			continue
+		}
+
+		_, err := WriteDeltaToDB(delta, tx)
+		if err != nil {
+			return err
+		}
+	}
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+	err = store.db.Close()
+	if err != nil {
+		return err
+	}
+	fmt.Println("parsing complete:", sqliteFile)
+
+	return nil
 }
 
 func writeDeltasSingleFile(exportDir string, deltaChan chan *Row) error {
@@ -66,66 +108,23 @@ func writeDeltasSingleFile(exportDir string, deltaChan chan *Row) error {
 	return nil
 }
 
-func writeDeltasMultiFile(exportDir string, deltaChan chan *Row, fdpool *FDPool) error {
-
-	for delta := range deltaChan {
-		// remove everything before the first slash stackoverflow.com/1234 -> 1234
-		streamID := strings.Join(strings.Split(delta.StreamID, "/")[1:], "/")
-		subDir := ("000" + streamID)[len(streamID):]
-		outputDir := filepath.Join(exportDir, subDir)
-		err := os.MkdirAll(outputDir, 0755)
-		if err != nil {
-			return err
-		}
-		outputFilename := filepath.Join(outputDir, streamID)
-		output, err := fdpool.GetFD(outputFilename)
-		if err != nil {
-			return err
-		}
-		jsonBytes, err := json.Marshal(delta)
-		if err != nil {
-			return err
-		}
-		_, err = output.Write(append(jsonBytes, '\n'))
-		if err != nil {
-			return err
-		}
+func (w *Worker) getDeltaChan(domain string, version string) (chan *Row, error) {
+	allParsers, err := w.getAllParsers(domain, version)
+	if err != nil {
+		return nil, err
 	}
-
-	return nil
-}
-
-func (w *Worker) domainIsExported(domain string) (bool, error) {
-	streamDir := filepath.Join(w.workingDir, "streams", domain)
-	statInfo, err := os.Stat(streamDir)
-	if err == nil && statInfo.IsDir() {
-		return true, nil
-	}
-	if err == nil && !statInfo.IsDir() {
-		return false, fmt.Errorf("not a directory:", streamDir)
-	}
-	if os.IsNotExist((err)) {
-		return false, nil
-	}
-	return false, err
-}
-
-func (w *Worker) getDeltaChan(domain string) (chan *Row, error) {
 
 	deltaChan := make(chan *Row)
 	go func() {
-		allParsers, err := w.getAllParsers(domain)
 		defer close(deltaChan)
 		defer func() {
 			for _, p := range allParsers {
 				p.Close()
 			}
 		}()
-		if err != nil {
-			return
-		}
 
 		lookup := make([]uint32, 100*1000*1000)
+		maxPostID := 0
 		for allParsers[PostsType].Peek() != nil {
 			post := allParsers[PostsType].Next()
 			if post.PostTypeID == "2" {
@@ -133,9 +132,15 @@ func (w *Worker) getDeltaChan(domain string) (chan *Row, error) {
 			} else {
 				lookup[*post.ID] = uint32(*post.ID)
 			}
+			if *post.ID > maxPostID {
+				maxPostID = *post.ID
+			}
+		}
+
+		for postID := 0; postID <= maxPostID; postID++ {
 			for _, deltaType := range DeltaTypeOrder {
 				psr := allParsers[deltaType]
-				for psr.Peek() != nil && *psr.Peek().PostID <= *post.ID {
+				for psr.Peek() != nil && *psr.Peek().PostID <= postID {
 					d := psr.Next()
 					d.DeltaType = deltaType
 					d.StreamID = fmt.Sprintf("%s/%d", domain, lookup[*d.PostID])
@@ -143,41 +148,42 @@ func (w *Worker) getDeltaChan(domain string) (chan *Row, error) {
 				}
 			}
 		}
-		lookup = []uint32{}
+		lookup = []uint32{} // this very large array needs to be deallocated before the next one gets created
+		debug.FreeOSMemory()
 	}()
 
 	return deltaChan, nil
 
 }
 
-func (w *Worker) getAllParsers(domain string) (map[string]*RowsParser, error) {
+func (w *Worker) getAllParsers(domain string, version string) (map[string]*RowsParser, error) {
 	allParsers := map[string]*RowsParser{}
 
-	postsPsr, err := w.getXmlReader(domain, PostsType)
+	postsPsr, err := w.getXmlReader(domain, version, PostsType)
 	if err != nil {
 		return allParsers, err
 	}
 	allParsers[PostsType] = postsPsr
 
-	historyPsr, err := w.getXmlReader(domain, PostHistoryType)
+	historyPsr, err := w.getXmlReader(domain, version, PostHistoryType)
 	if err != nil {
 		return allParsers, err
 	}
 	allParsers[PostHistoryType] = historyPsr
 
-	commentsPsr, err := w.getXmlReader(domain, CommentsType)
+	commentsPsr, err := w.getXmlReader(domain, version, CommentsType)
 	if err != nil {
 		return allParsers, err
 	}
 	allParsers[CommentsType] = commentsPsr
 
-	linksPsr, err := w.getXmlReader(domain, PostLinksType)
+	linksPsr, err := w.getXmlReader(domain, version, PostLinksType)
 	if err != nil {
 		return allParsers, err
 	}
 	allParsers[PostLinksType] = linksPsr
 
-	votesPsr, err := w.getXmlReader(domain, VotesType)
+	votesPsr, err := w.getXmlReader(domain, version, VotesType)
 	if err != nil {
 		return allParsers, err
 	}
@@ -186,12 +192,12 @@ func (w *Worker) getAllParsers(domain string) (map[string]*RowsParser, error) {
 	return allParsers, nil
 }
 
-func (w *Worker) getXmlReader(domain string, deltaType string) (*RowsParser, error) {
-	postZipFilanme := filepath.Join(w.workingDir, "zips", domain+".7z")
+func (w *Worker) getXmlReader(domain string, version string, deltaType string) (*RowsParser, error) {
+	postZipFilanme := filepath.Join(w.workingDir, domain, version, domain+".7z")
 	_, err := os.Stat(postZipFilanme)
 	// hmmm try with '-Post' postfix
 	if err != nil {
-		postZipFilanme = filepath.Join(w.workingDir, "zips", domain+"-"+deltaType+".7z")
+		postZipFilanme = filepath.Join(w.workingDir, domain, version, domain+"-"+deltaType+".7z")
 	}
 
 	cmd := exec.Command("7z", "e", "-so", postZipFilanme, deltaType+".xml")
