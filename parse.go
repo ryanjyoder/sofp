@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime/debug"
+	"time"
 )
 
 func (w *Worker) parseDomain(domain string, version string) error {
@@ -32,6 +33,9 @@ func (w *Worker) parseDomain(domain string, version string) error {
 	if err != nil {
 		return err
 	}
+
+	log.Println("waiting for memory to deallocate")
+	time.Sleep(time.Second * 10)
 
 	cmd := exec.Command("gzip", "-k", "-f", sqlitePath)
 	err = cmd.Run()
