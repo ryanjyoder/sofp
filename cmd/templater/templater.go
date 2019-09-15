@@ -1,34 +1,83 @@
 package main
 
 import (
-	"bufio"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ryanjyoder/sofp"
 )
 
 var pageTemplate *template.Template
+var StreamsDBs map[string]*sql.DB
 
 func main() {
-	var err error
-	pageTemplateFilepath := filepath.Join(os.Args[2], "stackoverflow.html")
+	resp, err := http.Get("http://so.gearfar.com/v1/sites")
+	if err != nil {
+		fmt.Println("error loading available sites:", err)
+		os.Exit(1)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		fmt.Println("error reading response:", err)
+		os.Exit(1)
+	}
+
+	sites := map[string]int{}
+	err = json.Unmarshal(body, &sites)
+	if err != nil {
+		fmt.Println("error loading sites:", err)
+		os.Exit(1)
+	}
+	storageDir := os.Args[1]
+	dbs, err := getDbs(storageDir, sites)
+
+	fmt.Println(dbs, err)
+
+	StreamsDBs = dbs
+
+	pageTemplateFilepath := filepath.Join(os.Args[2], "question.tpl")
 	staticAssetsDir := filepath.Join(os.Args[2], "static")
 	pageTemplate, err = template.ParseFiles(pageTemplateFilepath)
 	if err != nil {
 		log.Fatal("failed to load tempalte:", err)
 	}
-	http.Handle("/page/assets/", http.StripPrefix("/page/assets/", http.FileServer(http.Dir(staticAssetsDir))))
-	http.HandleFunc("/page/", viewHandler)
+	http.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir(staticAssetsDir))))
+	http.HandleFunc("/", viewHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
+func getDbs(storageDir string, sites map[string]int) (map[string]*sql.DB, error) {
+	dbs := map[string]*sql.DB{}
+	for domain, version := range sites {
+		dbFilepath := fmt.Sprintf("%s/%s/%d/streams.sqlite", storageDir, domain, version)
+		database, err := sql.Open("sqlite3", dbFilepath)
+		if err != nil {
+			return nil, err
+		}
+		dbs[domain] = database
+	}
+	return dbs, nil
+}
+
 func viewHandler(w http.ResponseWriter, r *http.Request) {
-	p, err := loadPage(filepath.Base(r.URL.Path))
+	parts := strings.Split(r.URL.Path, "/")
+	fmt.Println("handing page:", r.URL.Path)
+	if len(parts) != 4 {
+		http.Error(w, "incorrect format", 404)
+		return
+	}
+	domain := parts[1]
+	id := parts[3]
+	p, err := loadPage(domain, id)
 	if err != nil {
 		log.Println("error loading page data:", err)
 		http.Error(w, err.Error(), 404)
@@ -38,42 +87,52 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	pageTemplate.Execute(w, p)
 }
 
-func loadPage(id string) (*sofp.Question, error) {
-	streamsDir := os.Args[1]
-	paddedFilename := id + "000"
-	filepath := filepath.Join(streamsDir, paddedFilename[:3], id)
+func loadPage(domain, id string) (*sofp.Question, error) {
+	fmt.Println("loading page:", domain, id)
+	db, ok := StreamsDBs[domain]
+	if !ok {
+		return nil, fmt.Errorf("domain not found")
+	}
 
-	file, err := os.Open(filepath)
+	rows, err := db.Query(`
+	SELECT msg FROM deltas WHERE streamID = ? order by ordering
+	`, domain+"/"+id)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer rows.Close()
 
-	scanner := bufio.NewScanner(file)
-	if ok := scanner.Scan(); !ok {
-		log.Fatal("error getting question from stream:", scanner.Err())
-	}
-
-	questionStr := scanner.Text()
-	row := sofp.Row{}
-	json.Unmarshal([]byte(questionStr), &row)
-	question, err := row.GetQuestion()
-	if err != nil {
-		log.Fatal("first row is not a question:", err)
-	}
-
-	for scanner.Scan() {
-		rowStr := scanner.Text()
-		row := sofp.Row{}
-		err = json.Unmarshal([]byte(rowStr), &row)
+	deltas := []*sofp.Row{}
+	for rows.Next() {
+		msg := ""
+		delta := &sofp.Row{}
+		err := rows.Scan(&msg)
 		if err != nil {
-			log.Fatal("Error reading stream:", err, rowStr)
+			return nil, err
 		}
-		question.AppendRow(&row)
+		err = json.Unmarshal([]byte(msg), delta)
+		if err != nil {
+			return nil, err
+		}
+		deltas = append(deltas, delta)
 	}
 
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+	if len(deltas) < 1 {
+		return nil, fmt.Errorf("page not found")
 	}
+
+	question, err := deltas[0].GetQuestion()
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range deltas {
+		if i == 0 {
+			continue
+		}
+
+		question.AppendRow(deltas[i])
+	}
+
 	return question, nil
 }

@@ -37,7 +37,7 @@ func main() {
 	v1.GET("/sites", s.ListSites)
 	v1.GET("/sites/:domain/:version/"+sofp.FilenameSqlite+".gz", s.Sqlite)
 
-	r.Run() // listen and serve on 0.0.0.0:8080
+	r.Run(":7770")
 }
 
 func (s *Server) ListSites(c *gin.Context) {

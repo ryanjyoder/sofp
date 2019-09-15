@@ -65,6 +65,7 @@ func writeDeltasToSqlite(sqliteFile string, deltaChan chan *Row) error {
 	// if the last delta is empty then the db is empty and the stream is ready to start inserting
 	streamIsReset := lastDelta == ""
 
+	i := 0
 	for delta := range deltaChan {
 		// keep reading from the chan until we see the last delta in the db. Then we'll starting inserting
 		if !streamIsReset {
@@ -75,6 +76,18 @@ func writeDeltasToSqlite(sqliteFile string, deltaChan chan *Row) error {
 		_, err := WriteDeltaToDB(delta, tx)
 		if err != nil {
 			return err
+		}
+		i++
+		if i > 1000 {
+			err := tx.Commit()
+			if err != nil {
+				return err
+			}
+			tx, err = store.Begin()
+			if err != nil {
+				return err
+			}
+			i = 0
 		}
 	}
 	err = tx.Commit()

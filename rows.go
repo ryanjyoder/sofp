@@ -77,7 +77,7 @@ type Row struct {
 type Question struct {
 	// Post attributes
 	ID                    int           `xml:"Id,attr" json:"Id"`
-	AcceptedAnswerID      int           `xml:"AcceptedAnswerId,attr" json:"AcceptedAnswerId,omitempty"`
+	AcceptedAnswerID      *int          `xml:"AcceptedAnswerId,attr" json:"AcceptedAnswerId,omitempty"`
 	CreationDate          string        `xml:"CreationDate,attr" json:"CreationDate,omitempty"`
 	Score                 string        `xml:"Score,attr" json:"Score,omitempty"`
 	ViewCount             string        `xml:"ViewCount,attr" json:"ViewCount,omitempty"`
@@ -126,7 +126,7 @@ type Answer struct {
 func (row *Row) GetQuestion() (*Question, error) {
 	q := &Question{
 		ID:                    *row.ID,
-		AcceptedAnswerID:      *row.AcceptedAnswerID,
+		AcceptedAnswerID:      row.AcceptedAnswerID,
 		CreationDate:          row.CreationDate,
 		Score:                 row.Score,
 		ViewCount:             row.ViewCount,
