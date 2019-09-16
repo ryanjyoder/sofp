@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo $1
+#echo "$@" | gzip | base64 -b 0 

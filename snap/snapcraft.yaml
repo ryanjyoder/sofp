@@ -16,6 +16,10 @@ apps:
     command: bin/api $SNAP_COMMON
     daemon: simple
     plugs: [network, network-bind]
+  templater:
+    command: bin/templater $SNAP_COMMON $SNAP/template
+    daemon: simple
+    plugs: [network, network-bind]
 
   
 
@@ -35,12 +39,18 @@ parts:
       echo _______________________ Building binaries _______________________________
       go build cmd/downloader/downloader.go
       go build cmd/api/api.go
+      go bubild cmd/templater/templater.go
       echo _______________________ Build finished ________________________________
       mkdir  -p $SNAPCRAFT_PART_INSTALL/bin
       cp downloader $SNAPCRAFT_PART_INSTALL/bin/
       cp api $SNAPCRAFT_PART_INSTALL/bin/
+      cp templater $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/wrapper $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/7z $SNAPCRAFT_PART_INSTALL/bin/
       echo _______________________ Building finsihed ___________________________
 
-      
+  template:
+    source: .
+    plugin: dump
+    stage: 
+      - template
