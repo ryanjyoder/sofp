@@ -19,7 +19,7 @@ var pageTemplate *template.Template
 var StreamsDBs map[string]*sql.DB
 
 func main() {
-	resp, err := http.Get("http://so.gearfar.com/v1/sites")
+	resp, err := http.Get("http://127.0.0.1:7770/v1/sites")
 	if err != nil {
 		fmt.Println("error loading available sites:", err)
 		os.Exit(1)
@@ -121,16 +121,9 @@ func loadPage(domain, id string) (*sofp.Question, error) {
 		return nil, fmt.Errorf("page not found")
 	}
 
-	question, err := deltas[0].GetQuestion()
-	if err != nil {
-		return nil, err
-	}
+	question := &sofp.Question{}
 
 	for i := range deltas {
-		if i == 0 {
-			continue
-		}
-
 		question.AppendRow(deltas[i])
 	}
 
