@@ -39,7 +39,7 @@ parts:
       echo _______________________ Building binaries _______________________________
       go build cmd/downloader/downloader.go
       go build cmd/api/api.go
-      go bubild cmd/templater/templater.go
+      go build cmd/templater/templater.go
       echo _______________________ Build finished ________________________________
       mkdir  -p $SNAPCRAFT_PART_INSTALL/bin
       cp downloader $SNAPCRAFT_PART_INSTALL/bin/
