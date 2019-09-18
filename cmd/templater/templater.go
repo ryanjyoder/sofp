@@ -19,6 +19,7 @@ var pageTemplate *template.Template
 var StreamsDBs map[string]*sql.DB
 
 func main() {
+	//resp, err := http.Get("http://so.gearfar.com:7770/v1/sites")
 	resp, err := http.Get("http://127.0.0.1:7770/v1/sites")
 	if err != nil {
 		fmt.Println("error loading available sites:", err)
@@ -69,6 +70,66 @@ func getDbs(storageDir string, sites map[string]int) (map[string]*sql.DB, error)
 }
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.URL.Path, "/")
+	fmt.Println("handing page:", r.URL.Path)
+	switch len(parts) {
+	case 2:
+		if parts[1] == "" {
+			rootHandler(w, r)
+			break
+		}
+		indexHandler(w, r)
+	case 4:
+		questionHandler(w, r)
+	default:
+		http.Error(w, "incorrect format", 404)
+	}
+
+}
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	for domain := range StreamsDBs {
+		fmt.Fprintf(w, "<a href='/%s'>%s</a></br>\n", domain, domain)
+	}
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 2 {
+		http.Error(w, "incorrect format", 404)
+		return
+	}
+	domain := parts[1]
+	db, ok := StreamsDBs[domain]
+	if !ok {
+		http.Error(w, "domain not found", 404)
+		return
+	}
+
+	rows, err := db.Query(`select distinct streamID from deltas`)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		streamID := ""
+
+		err := rows.Scan(&streamID)
+		if err != nil {
+
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		idParts := strings.Split(streamID, "/")
+		href := idParts[0] + "/questions/" + idParts[1]
+
+		fmt.Fprintf(w, "<a href='/%s'>%s</a></br>\n", href, streamID)
+	}
+
+}
+
+func questionHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
 	fmt.Println("handing page:", r.URL.Path)
 	if len(parts) != 4 {
