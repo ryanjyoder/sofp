@@ -1,6 +1,7 @@
 package sofp
 
 import (
+	"bytes"
 	"context"
 	"crypto/md5"
 	"fmt"
@@ -75,7 +76,8 @@ func (w *Worker) getAvailableDomains() ([]Site, error) {
 	}
 
 	os.Rename(newSitesPath, sitesPath)
-	domains, err := getDomainsFromSitesXml(sitesPath)
+	buf := bytes.NewBuffer([]byte(sitesPath))
+	domains, err := GetDomainsFromSitesXml(buf)
 
 	return domains, err
 }

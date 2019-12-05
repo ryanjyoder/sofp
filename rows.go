@@ -249,7 +249,7 @@ func (q *Question) AppendLink(r *Row) error {
 
 func (q *Question) AppendHistory(r *Row) error {
 	if r.DeltaType != PostHistoryType {
-		return fmt.Errorf("row not history type:", r.DeltaType)
+		return fmt.Errorf("row not history type: %v", r.DeltaType)
 	}
 	if q.ID == 0 && r.PostID != nil {
 		q.ID = *r.PostID
@@ -335,7 +335,7 @@ func (q *Question) findAnswer(postID int) *Answer {
 
 func (q *Answer) AppendHistory(r *Row) error {
 	if r.DeltaType != PostHistoryType {
-		return fmt.Errorf("row not history type:", r.DeltaType)
+		return fmt.Errorf("row not history type: %v", r.DeltaType)
 	}
 
 	switch r.PostHistoryTypeID {

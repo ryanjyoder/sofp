@@ -21,7 +21,6 @@ type Worker struct {
 	workingDir        string
 	downloadSemephore *semaphore.Weighted
 	parseSemephore    *semaphore.Weighted
-	fdPool            *FDPool
 }
 
 type WorkerConfigs struct {

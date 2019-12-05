@@ -40,7 +40,7 @@ func NewParser(xmlFile io.ReadCloser) (*RowsParser, error) {
 			}
 		}
 	}()
-	psr.Next() // This will intialize the parse and fill the peek variable
+	psr.Next() // This will initialize the parse and fill the peek variable
 	return psr, nil
 }
 func timeMustParse(t time.Time, err error) time.Time {

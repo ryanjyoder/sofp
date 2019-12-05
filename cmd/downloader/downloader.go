@@ -1,27 +1,24 @@
 package main
 
 import (
-	"log"
+	"context"
+	"fmt"
 	"os"
 
-	sofp "github.com/ryanjyoder/sofp"
+	"github.com/ryanjyoder/sofp"
 )
 
 func main() {
 
-	if len(os.Args) < 2 {
-		log.Fatal("must provide a storage directory")
-	}
-	cfg, err := sofp.GetDefaultConfigs()
+	d, err := sofp.NewDownloader(os.Args[1], "https://archive.org")
 	if err != nil {
-		log.Fatal("couldn't get configs:", err)
+		fmt.Println("error creating downloader:", err)
+		os.Exit(1)
 	}
-	worker, err := sofp.NewWorker(cfg)
+
+	err = d.Run(context.TODO())
 	if err != nil {
-		log.Fatal("couldn't create new worker:", err)
-	}
-	err = worker.Run()
-	if err != nil {
-		log.Fatal("worker failed to run:", err)
+		fmt.Println("error downloading:", err)
+		os.Exit(1)
 	}
 }

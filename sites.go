@@ -2,8 +2,8 @@ package sofp
 
 import (
 	"encoding/xml"
+	"io"
 	"io/ioutil"
-	"os"
 )
 
 type SitesXml struct {
@@ -33,12 +33,7 @@ type Site struct {
 	BadgeIconUrl   string   `xml:"BadgeIconUrl,attr"`   // "https://cdn.sstatic.net/Sites/stellarmeta/img/apple-touch-icon.png"
 }
 
-func getDomainsFromSitesXml(xmlFilename string) ([]Site, error) {
-	xmlFile, err := os.Open(xmlFilename)
-	if err != nil {
-		return nil, err
-	}
-	defer xmlFile.Close()
+func GetDomainsFromSitesXml(xmlFile io.Reader) ([]Site, error) {
 
 	byteValue, err := ioutil.ReadAll(xmlFile)
 	if err != nil {
