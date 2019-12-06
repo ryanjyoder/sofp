@@ -2,28 +2,38 @@ package sofp
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+
+	bolt "go.etcd.io/bbolt"
 )
 
 func ListDownloadedDomains(rootDir string) ([]string, error) {
-	prefix, err := filepath.Abs(filepath.Join(rootDir, "current"))
+	prefix, err := filepath.Abs(rootDir)
 	if err != nil {
 		return nil, err
 	}
 
 	domains := []string{}
-	re := regexp.MustCompile(prefix + "/([^/]+)/download-complete")
+	re := regexp.MustCompile(prefix + "/([^/]+)/current")
 	err = filepath.Walk(rootDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		domainSlice := re.FindStringSubmatch(path)
-		domains = append(domains, domainSlice...)
+		absPath, _ := filepath.Abs(path)
+		matchSlice := re.FindStringSubmatch(absPath)
+		if len(matchSlice) < 2 {
+			return nil
+		}
+		if _, err := os.Stat(filepath.Join(path, "download-complete")); err != nil {
+			return nil
+		}
+		domains = append(domains, matchSlice[1])
 		return nil
 	})
 
@@ -52,17 +62,47 @@ func BuildPostIDLookup(ctx context.Context, rootDir string, domain string) error
 	if err != nil {
 		return err
 	}
-	lookup := make([]uint32, 100*1000*1000)
-	for postParser.Peek() != nil {
-		post := postParser.Next()
-		if post.PostTypeID == "2" {
-			lookup[*post.ID] = uint32(*post.ParentID)
-		} else {
-			lookup[*post.ID] = uint32(*post.ID)
-		}
+
+	boltPath := filepath.Join(rootDir, domain, "current", "lookup.db")
+	db, err := bolt.Open(boltPath, 0666, nil)
+	if err != nil {
+		return err
 	}
-	fmt.Println(lookup[100])
+	defer db.Close()
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("lookup"))
+		return err
+
+	})
+	if err != nil {
+		return err
+	}
+
+	for postParser.Peek() != nil {
+		p := postParser.Next()
+		go func(post Row) {
+			err = db.Batch(func(tx *bolt.Tx) error {
+				lookup := tx.Bucket([]byte("lookup"))
+				if post.PostTypeID == "2" {
+					lookup.Put(itob(*post.ID), itob(*post.ParentID))
+					// lookup[*post.ID] = uint32(*post.ParentID)
+				} else {
+					lookup.Put(itob(*post.ID), itob(*post.ID))
+					//lookup[*post.ID] = uint32(*post.ID)
+				}
+
+				return nil
+			})
+		}(*p)
+
+	}
+	fmt.Println(db)
 	return nil
+}
+
+func SetLookupBuilt(rootDir string, domain string) error {
+	return setFlag(rootDir, domain, "lookup-built")
 }
 
 func SqliteIsBuilt(rootDir string, domain string) (bool, error) {
@@ -89,4 +129,11 @@ func getXmlReader(zipFilename string, xmlFilename string) (io.ReadCloser, error)
 	}()
 
 	return stdout, nil
+}
+
+// itob returns an 8-byte big endian representation of v.
+func itob(v int) []byte {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(v))
+	return b
 }

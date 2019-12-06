@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+## Get ENVs ###
+export SIMULTANEOUS_PARSE="$(snapctl get simultaneous-parse)"
+export FD_POOL_SIZE="$(snapctl get fd-pool-size)"
+storage_dir="$(snapctl get storage-dir)"
+if [ -z "$storage_dir" ]
+then
+      echo "storage-dir must be set"
+      exit 1
+fi
+
+export PATH=$SNAP/bin:$PATH
+
+### Start daemon ###
+$SNAP/bin/lookupbuilder $storage_dir

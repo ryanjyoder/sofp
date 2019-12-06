@@ -8,18 +8,26 @@ base: core
 
 
 apps:
-  sofp:
-    command: bin/wrapper
+  downloader:
+    command: bin/run_downloader
     daemon: simple
+    # run every hour (24 times per day)
+    timer: 00:00-24:00/24 
     plugs: [network, removable-media]
-  api:
-    command: bin/api $SNAP_COMMON
+  lookupbuilder:
+    command: bin/run_lookupbuilder
     daemon: simple
-    plugs: [network, network-bind]
-  templater:
-    command: bin/templater $SNAP_COMMON $SNAP/template
-    daemon: simple
-    plugs: [network, network-bind]
+    # run every hour (24 times per day)
+    timer: 00:00-24:00/24 
+    plugs: [removable-media]
+#  api:
+#    command: bin/api $SNAP_COMMON
+#    daemon: simple
+#    plugs: [network, network-bind]
+#  templater:
+#    command: bin/templater $SNAP_COMMON $SNAP/template
+#    daemon: simple
+#    plugs: [network, network-bind]
 
   
 
@@ -38,16 +46,19 @@ parts:
       go get -u gopkg.in/go-playground/assert.v1
       echo _______________________ Building binaries _______________________________
       go build cmd/downloader/downloader.go
-      go build cmd/api/api.go
-      go build cmd/templater/templater.go
+      go build cmd/lookupbuilder/lookupbuilder.go
+      #go build cmd/api/api.go
+      #go build cmd/templater/templater.go
       echo _______________________ Build finished ________________________________
       mkdir  -p $SNAPCRAFT_PART_INSTALL/bin
       cp downloader $SNAPCRAFT_PART_INSTALL/bin/
-      cp api $SNAPCRAFT_PART_INSTALL/bin/
-      cp templater $SNAPCRAFT_PART_INSTALL/bin/
-      cp bin/wrapper $SNAPCRAFT_PART_INSTALL/bin/
+      cp lookupbuilder $SNAPCRAFT_PART_INSTALL/bin/
+      #cp api $SNAPCRAFT_PART_INSTALL/bin/
+      #cp templater $SNAPCRAFT_PART_INSTALL/bin/
+      cp bin/run_downloader $SNAPCRAFT_PART_INSTALL/bin/
+      cp bin/run_lookupbuilder $SNAPCRAFT_PART_INSTALL/bin/ 
       cp bin/7z $SNAPCRAFT_PART_INSTALL/bin/
-      echo _______________________ Building finsihed ___________________________
+      echo _______________________ Building finished ___________________________
 
   template:
     source: .
