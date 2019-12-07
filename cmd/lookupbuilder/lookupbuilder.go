@@ -23,11 +23,11 @@ func main() {
 			fmt.Println("error checking lookup db:", err)
 			continue
 		}
-		err = sofp.BuildPostIDLookup(context.TODO(), rootDir, domain)
+		version, err := sofp.BuildPostIDLookup(context.TODO(), rootDir, domain)
 		if err != nil {
 			fmt.Println("Error building lookup:", err)
 		}
-		sofp.SetLookupBuilt(rootDir, domain)
+		sofp.SetLookupBuilt(rootDir, domain, version)
 	}
 
 }
