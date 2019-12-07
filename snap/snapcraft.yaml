@@ -20,6 +20,12 @@ apps:
     # run every hour (24 times per day)
     timer: 00:00-24:00/24 
     plugs: [removable-media]
+  sqlitebuilder:
+    command: bin/run_sqlitebuilder
+    daemon: simple
+    # run every hour (24 times per day)
+    timer: 00:00-24:00/24 
+    plugs: [removable-media]
 #  api:
 #    command: bin/api $SNAP_COMMON
 #    daemon: simple
@@ -47,16 +53,17 @@ parts:
       echo _______________________ Building binaries _______________________________
       go build cmd/downloader/downloader.go
       go build cmd/lookupbuilder/lookupbuilder.go
-      #go build cmd/api/api.go
-      #go build cmd/templater/templater.go
+      go build cmd/sqlitebuilder/sqlitebuilder.go
       echo _______________________ Build finished ________________________________
       mkdir  -p $SNAPCRAFT_PART_INSTALL/bin
       cp downloader $SNAPCRAFT_PART_INSTALL/bin/
       cp lookupbuilder $SNAPCRAFT_PART_INSTALL/bin/
+      cp sqlitebuilder $SNAPCRAFT_PART_INSTALL/bin/
       #cp api $SNAPCRAFT_PART_INSTALL/bin/
       #cp templater $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/run_downloader $SNAPCRAFT_PART_INSTALL/bin/
       cp bin/run_lookupbuilder $SNAPCRAFT_PART_INSTALL/bin/ 
+      cp bin/run_sqlitebuilder $SNAPCRAFT_PART_INSTALL/bin/ 
       cp bin/7z $SNAPCRAFT_PART_INSTALL/bin/
       echo _______________________ Building finished ___________________________
 

@@ -14,6 +14,9 @@ import (
 )
 
 func ListDownloadedDomains(rootDir string) ([]string, error) {
+	return ListDomainsWithFlag(rootDir, "download-complete")
+}
+func ListDomainsWithFlag(rootDir string, flag string) ([]string, error) {
 	prefix, err := filepath.Abs(rootDir)
 	if err != nil {
 		return nil, err
@@ -30,7 +33,8 @@ func ListDownloadedDomains(rootDir string) ([]string, error) {
 		if len(matchSlice) < 2 {
 			return nil
 		}
-		if _, err := os.Stat(filepath.Join(path, "download-complete")); err != nil {
+		if _, err := os.Stat(filepath.Join(path, flag)); err != nil {
+			fmt.Println("no download flag", filepath.Join(path, flag))
 			return nil
 		}
 		domains = append(domains, matchSlice[1])
@@ -45,28 +49,31 @@ func PostIDLookupIsBuilt(rootDir string, domain string) (bool, error) {
 	return ok, err
 }
 
-func BuildPostIDLookup(ctx context.Context, rootDir string, domain string) error {
-	// TODO: find version and use instead of current to avoid any race conditions
+func BuildPostIDLookup(ctx context.Context, rootDir string, domain string) (string, error) {
+	version, err := os.Readlink(filepath.Join(rootDir, domain, "current"))
+	if err != nil {
+		return version, err
+	}
 
-	zipFilename := filepath.Join(rootDir, domain, "current", domain+".7z")
+	zipFilename := filepath.Join(rootDir, domain, version, domain+".7z")
 	if domainIsMultiArchive[domain] {
-		zipFilename = filepath.Join(rootDir, domain, "current", domain+"-Posts.7z")
+		zipFilename = filepath.Join(rootDir, domain, version, domain+"-Posts.7z")
 	}
 	xmlFilename := "Posts.xml"
 
-	xmlReader, err := getXmlReader(zipFilename, xmlFilename)
+	xmlReader, err := getXmlIOReader(zipFilename, xmlFilename)
 	if err != nil {
-		return err
+		return version, err
 	}
 	postParser, err := NewParser(xmlReader)
 	if err != nil {
-		return err
+		return version, err
 	}
 
-	boltPath := filepath.Join(rootDir, domain, "current", "lookup.db")
+	boltPath := filepath.Join(rootDir, domain, version, FilenameLookupDB)
 	db, err := bolt.Open(boltPath, 0666, nil)
 	if err != nil {
-		return err
+		return version, err
 	}
 	defer db.Close()
 
@@ -76,7 +83,7 @@ func BuildPostIDLookup(ctx context.Context, rootDir string, domain string) error
 
 	})
 	if err != nil {
-		return err
+		return version, err
 	}
 
 	for postParser.Peek() != nil {
@@ -97,24 +104,15 @@ func BuildPostIDLookup(ctx context.Context, rootDir string, domain string) error
 		}(*p)
 
 	}
-	fmt.Println(db)
-	return nil
+
+	return version, nil
 }
 
-func SetLookupBuilt(rootDir string, domain string) error {
-	return setFlag(rootDir, domain, "lookup-built")
+func SetLookupBuilt(rootDir string, domain string, version string) error {
+	return setFlag(rootDir, domain, version, "lookup-built")
 }
 
-func SqliteIsBuilt(rootDir string, domain string) (bool, error) {
-	ok, err := flagIsSet(rootDir, domain, "sqlite-built")
-	return ok, err
-}
-
-func BuildSqlite(ctx context.Context, rootDir string, domain string) error {
-	return fmt.Errorf("not implemented")
-}
-
-func getXmlReader(zipFilename string, xmlFilename string) (io.ReadCloser, error) {
+func getXmlIOReader(zipFilename string, xmlFilename string) (io.ReadCloser, error) {
 	cmd := exec.Command("7z", "e", "-so", zipFilename, xmlFilename)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -136,4 +134,12 @@ func itob(v int) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(v))
 	return b
+}
+
+// btoi returns reverses itob
+func btoi(v []byte) int {
+	if len(v) < 1 {
+		return 0
+	}
+	return int(binary.BigEndian.Uint64(v))
 }

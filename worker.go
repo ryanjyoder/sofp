@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	FilenameSqlite = "streams.sqlite"
+	FilenameSqlite   = "streams.sqlite"
+	FilenameLookupDB = "lookup.bolt"
 )
 
 type Worker struct {
@@ -55,10 +56,7 @@ func (w *Worker) Run() error {
 }
 
 func (w *Worker) singleRun() error {
-	sites, err := w.getAvailableDomains()
-	if err != nil {
-		return err
-	}
+	sites := []Site{}
 
 	log.Println("Begin processing")
 	wg := sync.WaitGroup{}
@@ -79,13 +77,8 @@ func (w *Worker) singleRun() error {
 }
 
 func (w *Worker) processDomain(domain string, version string) error {
-	err := w.downloadDomain(domain, version)
-	if err != nil {
-		log.Println("download failed for:", domain, err)
-		return nil
-	}
 
-	err = w.parseDomain(domain, version)
+	err := w.parseDomain(domain, version)
 	if err != nil {
 		log.Println("parsing failed for:", domain, err)
 		return nil

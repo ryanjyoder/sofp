@@ -64,13 +64,13 @@ func (d *Downloader) Run(ctx context.Context) error {
 			continue
 		}
 
-		err = DownloadArchive(ctx, d.Host, d.RootDir, domain)
+		version, err := DownloadArchive(ctx, d.Host, d.RootDir, domain)
 		if err != nil {
 			fmt.Println("error downloading:", domain, err)
 			continue
 		}
 
-		err = SetArchiveDownloaded(d.RootDir, domain)
+		err = SetArchiveDownloaded(d.RootDir, domain, version)
 		if err != nil {
 			fmt.Println("error downloading:", domain, err)
 			continue
@@ -145,6 +145,24 @@ var domainIsMultiArchive = map[string]bool{
 	"stackoverflow.com": true,
 }
 
+func get7zFilenames(domain string) []string {
+	if domain == "stackoverflow.com" {
+		return []string{
+			domain + "-Badges.7z",
+			domain + "-Comments.7z",
+			domain + "-PostHistory.7z",
+			domain + "-PostLinks.7z",
+			domain + "-Posts.7z",
+			domain + "-Tags.7z",
+			domain + "-Users.7z",
+			domain + "-Votes.7z",
+		}
+	}
+
+	return []string{domain + ".7z"}
+
+}
+
 func GetRemoteCurrentVersion(ctx context.Context, host string, domain string) (string, error) {
 	filename := domain + ".7z"
 	if domainIsMultiArchive[domain] {
@@ -202,11 +220,11 @@ func CurrentVersionIsSet(rootDir string, domain string) (bool, error) {
 func CurrentArchiveIsDownloaded(rootDir string, domain string) (bool, error) {
 	return flagIsSet(rootDir, domain, "download-complete")
 }
-func SetArchiveDownloaded(rootDir string, domain string) error {
-	return setFlag(rootDir, domain, "download-complete")
+func SetArchiveDownloaded(rootDir string, domain string, version string) error {
+	return setFlag(rootDir, domain, version, "download-complete")
 }
 
-func DownloadArchive(ctx context.Context, host string, rootDir string, domain string) error { // save to etag in header
+func DownloadArchive(ctx context.Context, host string, rootDir string, domain string) (string, error) { // save to etag in header
 	downloadFiles := []string{domain + ".7z"}
 	if domainIsMultiArchive[domain] {
 		downloadFiles = []string{domain + "-Posts.7z", domain + "-Badges.7z", domain + "-Comments.7z", domain + "-PostHistory.7z", domain + "-PostLinks.7z", domain + "-Tags.7z", domain + "-Users.7z", domain + "-Votes.7z"}
@@ -214,28 +232,31 @@ func DownloadArchive(ctx context.Context, host string, rootDir string, domain st
 	downloadUrl := host + "/download/stackexchange/" + downloadFiles[0]
 	baseLastModified, err := getLastModifiedHeader(ctx, downloadUrl)
 	if err != nil {
-		return err
+		return "", err
 	}
+
+	// TODO: This check should happen on the actual GET request
+	version, err := GetRemoteCurrentVersion(ctx, host, domain)
 
 	for _, filename := range downloadFiles {
 		downloadUrl := host + "/download/stackexchange/" + filename
 		lastModified, err := getLastModifiedHeader(ctx, downloadUrl)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		// If the difference is more than a week, then it's in the process of uploading a new version
 		if math.Abs(baseLastModified.Sub(lastModified).Hours()) > 24*7 {
-			return fmt.Errorf("new version is being uploaded")
+			return "", fmt.Errorf("new version is being uploaded")
 		}
 
-		output := filepath.Join(rootDir, domain, "current", filename)
+		output := filepath.Join(rootDir, domain, version, filename)
 		_, err = grab.Get(output, downloadUrl)
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return version, nil
 }
 func getLastModifiedHeader(ctx context.Context, url string) (time.Time, error) {
 	resp, err := http.Head(url)
@@ -266,8 +287,8 @@ func flagIsSet(rootDir string, domain string, flag string) (bool, error) {
 	return true, nil
 }
 
-func setFlag(rootDir string, domain string, flag string) error {
-	filename := filepath.Join(rootDir, domain, "current", flag)
+func setFlag(rootDir string, domain string, version string, flag string) error {
+	filename := filepath.Join(rootDir, domain, version, flag)
 	f, err := os.Create(filename)
 	if err != nil {
 		return err

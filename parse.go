@@ -126,7 +126,7 @@ func writeDeltasSingleFile(exportDir string, deltaChan chan *Row) error {
 }
 
 func (w *Worker) getDeltaChan(domain string, version string) (chan *Row, error) {
-	allParsers, err := w.getAllParsers(domain, version)
+	allParsers, err := getAllParsers(w.workingDir, domain, version)
 	if err != nil {
 		return nil, err
 	}
@@ -173,34 +173,34 @@ func (w *Worker) getDeltaChan(domain string, version string) (chan *Row, error) 
 
 }
 
-func (w *Worker) getAllParsers(domain string, version string) (map[string]*RowsParser, error) {
+func getAllParsers(rootDir string, domain string, version string) (map[string]*RowsParser, error) {
 	allParsers := map[string]*RowsParser{}
 
-	postsPsr, err := w.getXmlReader(domain, version, PostsType)
+	postsPsr, err := getXmlReader(rootDir, domain, version, PostsType)
 	if err != nil {
 		return allParsers, err
 	}
 	allParsers[PostsType] = postsPsr
 
-	historyPsr, err := w.getXmlReader(domain, version, PostHistoryType)
+	historyPsr, err := getXmlReader(rootDir, domain, version, PostHistoryType)
 	if err != nil {
 		return allParsers, err
 	}
 	allParsers[PostHistoryType] = historyPsr
 
-	commentsPsr, err := w.getXmlReader(domain, version, CommentsType)
+	commentsPsr, err := getXmlReader(rootDir, domain, version, CommentsType)
 	if err != nil {
 		return allParsers, err
 	}
 	allParsers[CommentsType] = commentsPsr
 
-	linksPsr, err := w.getXmlReader(domain, version, PostLinksType)
+	linksPsr, err := getXmlReader(rootDir, domain, version, PostLinksType)
 	if err != nil {
 		return allParsers, err
 	}
 	allParsers[PostLinksType] = linksPsr
 
-	votesPsr, err := w.getXmlReader(domain, version, VotesType)
+	votesPsr, err := getXmlReader(rootDir, domain, version, VotesType)
 	if err != nil {
 		return allParsers, err
 	}
@@ -209,12 +209,12 @@ func (w *Worker) getAllParsers(domain string, version string) (map[string]*RowsP
 	return allParsers, nil
 }
 
-func (w *Worker) getXmlReader(domain string, version string, deltaType string) (*RowsParser, error) {
-	postZipFilanme := filepath.Join(w.workingDir, domain, version, domain+".7z")
+func getXmlReader(rootDir string, domain string, version string, deltaType string) (*RowsParser, error) {
+	postZipFilanme := filepath.Join(rootDir, domain, version, domain+".7z")
 	_, err := os.Stat(postZipFilanme)
 	// hmmm try with '-Post' postfix
 	if err != nil {
-		postZipFilanme = filepath.Join(w.workingDir, domain, version, domain+"-"+deltaType+".7z")
+		postZipFilanme = filepath.Join(rootDir, domain, version, domain+"-"+deltaType+".7z")
 	}
 
 	cmd := exec.Command("7z", "e", "-so", postZipFilanme, deltaType+".xml")
