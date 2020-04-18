@@ -126,7 +126,7 @@ type Answer struct {
 func (row *Row) GetQuestion() (*Question, error) {
 	q := &Question{
 		ID:                    *row.ID,
-		AcceptedAnswerID:      *row.AcceptedAnswerID,
+		AcceptedAnswerID:      getInt(row.AcceptedAnswerID),
 		CreationDate:          row.CreationDate,
 		Score:                 row.Score,
 		ViewCount:             row.ViewCount,
