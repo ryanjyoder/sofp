@@ -165,7 +165,7 @@ func (row *Row) GetAnswer() (*Answer, error) {
 		Comments:         []Comment{},
 	}
 
-	if row.DeltaType != PostsType || row.PostTypeID != "2" {
+	if row.PostTypeID != "2" {
 		return a, fmt.Errorf("row not of type Answer")
 	}
 
